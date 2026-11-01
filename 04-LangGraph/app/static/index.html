@@ -22,16 +22,28 @@
       background-color: var(--bg);
       font: 14px/1.5 "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
     }
-    .page { height: 100vh; display: grid; grid-template-columns: 45fr 55fr; gap: 14px; padding: 14px; }
+    /* --split is the chat's share of the width; the 14px gutter between the panels is the drag handle */
+    .page { --split: 50%; height: 100vh; display: grid; grid-template-columns: calc(var(--split) - 7px) 14px minmax(0, 1fr); padding: 14px; }
+    .splitter { position: relative; cursor: col-resize; touch-action: none; outline: none; }
+    .splitter::before {
+      content: ""; position: absolute; top: 50%; left: 50%; width: 4px; height: 44px; transform: translate(-50%, -50%);
+      border-radius: 2px; background: var(--line); transition: background-color .15s, height .15s, box-shadow .15s;
+    }
+    .splitter:hover::before, .splitter:focus-visible::before, body.dragging .splitter::before {
+      height: 72px; background: var(--accent); box-shadow: 0 0 10px var(--accent-glow);
+    }
+    body.dragging { cursor: col-resize; user-select: none; }
     section {
       min-width: 0; min-height: 0; display: flex; flex-direction: column;
       background: var(--panel); border: 1px solid var(--border); border-radius: 22px; overflow: hidden;
     }
-    header { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+    header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+    header > div { flex: 1 1 240px; min-width: 0; }  /* a narrow panel wraps the legend below instead of squeezing the title */
     header h1, header h2 { margin: 0; font-size: 15px; font-weight: 600; }
-    header p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+    /* Both panel headers are exactly title + one subtitle line, so their dividers always line up */
+    header p { margin: 2px 0 0; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .dot { display: inline-block; width: 7px; height: 7px; margin-right: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent-glow); vertical-align: 1px; }
-    .legend { display: flex; gap: 10px; font: 11px var(--mono); color: var(--muted); white-space: nowrap; }
+    .legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; margin-bottom: 34px; font: 11px var(--mono); color: var(--muted); white-space: nowrap; }
     .legend i { display: inline-block; width: 8px; height: 8px; margin-right: 5px; border: 1.5px solid var(--line); border-radius: 50%; vertical-align: -1px; }
     .legend .running i { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
     .legend .done i { border-color: var(--accent); background: var(--accent); }
@@ -213,6 +225,7 @@
 
     @media (max-width: 900px) {
       .page { height: auto; grid-template-columns: 1fr; padding: 10px; gap: 10px; }
+      .splitter { display: none; }  /* stacked: nothing to split */
       .chat { height: 72vh; }
       header { flex-direction: column; align-items: flex-start; gap: 4px; }
       .arch-body { padding: 16px; }
@@ -258,20 +271,23 @@
       </form>
     </section>
 
+    <div class="splitter" id="splitter" role="separator" aria-orientation="vertical" aria-label="Resize chat and architecture"
+         aria-valuemin="25" aria-valuemax="75" aria-valuenow="50" tabindex="0" title="Drag to resize · double-click to reset"></div>
+
     <section class="arch">
       <header>
         <div>
           <h2>Architecture</h2>
           <p>How the selected message travels through the app &middot; click a step for details</p>
         </div>
+      </header>
+      <div class="arch-body">
         <div class="legend">
           <span class="running"><i></i>running</span>
           <span class="done"><i></i>done</span>
           <span class="skipped"><i></i>skipped</span>
           <span class="error"><i></i>error</span>
         </div>
-      </header>
-      <div class="arch-body">
         <div class="diagram" id="diagram">
           <svg id="edges" aria-hidden="true"></svg>
           <div class="node" data-node="chat"><div class="head"><b>Chat UI</b></div><span class="detail"></span><span class="sub">this page</span></div>
@@ -933,6 +949,45 @@
       else requestAnimationFrame(frame);
     }
     startOrb(document.getElementById("orb"));
+
+    // ── Drag the gutter between chat and architecture (25–75%), remembered per browser ──
+    (function () {
+      const page = document.querySelector(".page"), handle = document.getElementById("splitter");
+      const KEY = "devops-ai-split", MIN = 25, MAX = 75;
+      const apply = pct => {
+        pct = Math.min(MAX, Math.max(MIN, pct));
+        page.style.setProperty("--split", pct + "%");
+        handle.setAttribute("aria-valuenow", Math.round(pct));
+        return pct;
+      };
+      const save = pct => { try { localStorage.setItem(KEY, pct); } catch {} };
+      try { const stored = parseFloat(localStorage.getItem(KEY)); if (stored) apply(stored); } catch {}
+
+      handle.addEventListener("pointerdown", e => {
+        handle.setPointerCapture(e.pointerId);
+        document.body.classList.add("dragging");
+      });
+      handle.addEventListener("pointermove", e => {
+        if (!handle.hasPointerCapture(e.pointerId)) return;
+        const r = page.getBoundingClientRect(), pad = parseFloat(getComputedStyle(page).paddingLeft);
+        apply(((e.clientX - r.left - pad) / (r.width - 2 * pad)) * 100);
+      });
+      const stop = e => {
+        if (!handle.hasPointerCapture(e.pointerId)) return;
+        handle.releasePointerCapture(e.pointerId);
+        document.body.classList.remove("dragging");
+        save(parseFloat(page.style.getPropertyValue("--split")) || 50);
+      };
+      handle.addEventListener("pointerup", stop);
+      handle.addEventListener("pointercancel", stop);
+      handle.addEventListener("dblclick", () => save(apply(50)));
+      handle.addEventListener("keydown", e => {
+        const step = { ArrowLeft: -2, ArrowRight: 2 }[e.key];
+        if (!step) return;
+        e.preventDefault();
+        save(apply((parseFloat(page.style.getPropertyValue("--split")) || 50) + step));
+      });
+    })();
 
     render();
     input.focus();
