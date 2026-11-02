@@ -13,7 +13,7 @@ import ctranslate2
 import psycopg
 from dotenv import load_dotenv
 from fastapi import FastAPI, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastembed import TextEmbedding
 from faster_whisper import WhisperModel
 from langgraph.config import get_stream_writer
@@ -148,6 +148,13 @@ def nearest_chunks(vector, k: int = TOP_K) -> list[dict]:
         for source, text, sim in rows
         if sim >= MIN_SIMILARITY
     ]
+
+
+def chunk_count() -> int:
+    """How many runbook chunks are loaded. Raises psycopg.Error when Postgres is down or ingest never ran."""
+    # A short timeout: a health check that hangs is worse than one that says "down"
+    with psycopg.connect(DATABASE_URL, connect_timeout=3) as conn:
+        return conn.execute("SELECT count(*) FROM chunks").fetchone()[0]
 
 
 def search_runbooks(query: str) -> list[dict]:
@@ -329,7 +336,12 @@ def root():
 
 @app.get("/health")
 def health():
-    return {"status": "healthy"}
+    """Healthy only when the knowledge base answers. 503 otherwise, so Docker and load balancers see it."""
+    try:
+        chunks = chunk_count()
+    except psycopg.Error as e:
+        return JSONResponse(status_code=503, content={"status": "unhealthy", "database": "down", "detail": str(e)})
+    return {"status": "healthy", "database": "up", "chunks": chunks}
 
 
 @app.get("/search")
