@@ -1,17 +1,21 @@
 import json
 import os
+import sysconfig
 import time
 from functools import cache
+from glob import glob
 from pathlib import Path
 from typing import TypedDict
 
 import av
+import ctranslate2
 import psycopg
 from dotenv import load_dotenv
 from fastapi import FastAPI, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from fastembed import TextEmbedding
 from faster_whisper import WhisperModel
+from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
 from openai import OpenAI
 from pgvector.psycopg import register_vector
@@ -26,8 +30,17 @@ STATIC_DIR = Path(__file__).parent / "static"
 MODEL = os.getenv("OPENROUTER_MODEL", "openrouter/free")
 TOP_K = 5  # how many runbook chunks to give the LLM
 MIN_SIMILARITY = 0.3  # below this, a chunk is not about the question
-WHISPER_MODEL = os.getenv("WHISPER_MODEL", "small")  # speech to text, runs locally on the CPU; multilingual (Hebrew too)
-WHISPER_LIVE_MODEL = os.getenv("WHISPER_LIVE_MODEL", "base")  # the live preview while you talk: ~3x faster, a bit rougher
+
+# Speech to text runs locally, on the NVIDIA GPU when there is one (~0.3 s per pass), else on the CPU.
+# On Windows the CUDA libraries come from the nvidia-* pip packages: tell Python where their DLLs are.
+for dll_dir in glob(os.path.join(sysconfig.get_paths()["purelib"], "nvidia", "*", "bin")):
+    os.add_dll_directory(dll_dir)
+    os.environ["PATH"] = dll_dir + os.pathsep + os.environ["PATH"]
+WHISPER_DEVICE = os.getenv("WHISPER_DEVICE") or ("cuda" if ctranslate2.get_cuda_device_count() else "cpu")
+GPU = WHISPER_DEVICE == "cuda"
+# All multilingual (Hebrew too). The GPU runs the big model for everything; the CPU needs smaller ones to keep up.
+WHISPER_MODEL = os.getenv("WHISPER_MODEL", "large-v3-turbo" if GPU else "small")
+WHISPER_LIVE_MODEL = os.getenv("WHISPER_LIVE_MODEL", WHISPER_MODEL if GPU else "base")  # the preview while you talk
 
 SYSTEM_PROMPT = """You are a DevOps assistant for our organization.
 Answer ONLY using the runbook excerpts in CONTEXT. Never add commands that are not in them.
@@ -66,8 +79,8 @@ embedder = TextEmbedding(EMBED_MODEL)
 
 @cache
 def whisper(name: str) -> WhisperModel:
-    """Loaded on the first /transcribe, not at startup: the first run downloads it (~480 MB for small, ~145 MB for base)."""
-    return WhisperModel(name, device="cpu", compute_type="int8")
+    """Loaded on the first /transcribe, not at startup: the first run downloads it (~1.6 GB for large-v3-turbo, ~480 MB for small)."""
+    return WhisperModel(name, device=WHISPER_DEVICE, compute_type="float16" if GPU else "int8")
 
 
 class ChatRequest(BaseModel):
@@ -102,17 +115,32 @@ def answer_from_chunks(question: str, chunks: list[dict]) -> dict:
         return {"answer": "I couldn't find anything about this in the runbooks.", "model": None, "sources": []}
 
     context = "\n\n".join(f"[{c['source']}]\n{c['text']}" for c in chunks)
-    response = client.chat.completions.create(
+    # Streamed, so the UI can show the reply word by word and the model's thinking (only some models send it)
+    write = get_stream_writer()
+    stream = client.chat.completions.create(
         model=MODEL,
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": f"CONTEXT:\n{context}\n\nQUESTION: {question}"},
         ],
+        stream=True,
+        extra_body={"include_reasoning": True},  # OpenRouter: send the thinking of models that have it
     )
-    answer = (response.choices[0].message.content or "").strip()
+    answer, model = "", None
+    for chunk in stream:
+        model = chunk.model or model
+        if not chunk.choices:
+            continue
+        delta = chunk.choices[0].delta
+        if reasoning := getattr(delta, "reasoning", None):  # an OpenRouter field, not in the OpenAI types
+            write({"type": "reasoning", "text": reasoning})
+        if delta.content:
+            answer += delta.content
+            write({"type": "token", "text": delta.content})
+    answer = answer.strip()
     # Show only the runbooks the answer actually cites; fall back to everything retrieved
     cited = [s for s in sources if s in answer]
-    return {"answer": answer, "model": response.model, "sources": cited or sources}
+    return {"answer": answer, "model": model, "sources": cited or sources}
 
 
 def ms_since(start: float, end: float | None = None) -> int:
@@ -259,9 +287,12 @@ def chat_stream(request: ChatRequest):
         state = {}
         yield sse({"type": "start"})
         try:
-            # "tasks" mode yields one dict when a node starts (has "input") and one when it ends (has "error")
-            for task in graph.stream({"question": request.message}, stream_mode="tasks"):
-                if "input" in task:
+            # "tasks" yields one dict when a node starts (has "input") and one when it ends (has "error");
+            # "custom" yields what the answer node writes while the LLM streams: token and reasoning events
+            for mode, task in graph.stream({"question": request.message}, stream_mode=["tasks", "custom"]):
+                if mode == "custom":
+                    yield sse({**task, "node": node})
+                elif "input" in task:
                     node = task["name"]
                     node_started[task["id"]] = time.perf_counter()
                     yield sse({"type": "running", "node": node})

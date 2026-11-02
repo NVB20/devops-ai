@@ -220,6 +220,13 @@
     .log-row .chunk .bar { flex: none; width: 48px; height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
     .log-row .chunk .bar i { display: block; height: 100%; background: var(--accent); }
     .log-row .chunk .src { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* The model's thinking before it answered: two lines, click for all of it */
+    .log-row .thought {
+      grid-column: 2 / -1; margin-top: 3px; font: italic 11.5px/1.5 var(--mono); color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer;
+    }
+    .log-row .thought.open { display: block; }
+    .log-row .thought::before { content: "thinking · "; font-style: normal; color: var(--accent); opacity: .7; }
     .log-row.error .node-name, .log-row.error .result { color: var(--danger); }
     .log-empty { padding: 8px 0; font-size: 12px; color: var(--muted); }
 
@@ -403,6 +410,15 @@
         span.textContent = text;
         row.appendChild(span);
       }
+      const thought = (entry.thinking || "").trim();
+      if (thought) {
+        const line = document.createElement("span");
+        line.className = "thought" + (entry.open ? " open" : "");
+        line.textContent = thought;
+        line.title = entry.open ? "Click to fold" : "Click to read all of it";
+        line.addEventListener("click", () => { entry.open = !entry.open; render(); });
+        row.appendChild(line);
+      }
       for (const chunk of entry.chunks || []) {
         const line = document.createElement("span");
         line.className = "chunk";
@@ -563,6 +579,10 @@
         set(trace, "api", "done", "request accepted");
         info(trace, "api", { more: ["POST /chat/stream", "streams one event per step (SSE)"] });
       } else if (ev.type === "running") for (const id of BOXES[ev.node] || []) set(trace, id, "running");
+      else if (ev.type === "reasoning") {
+        trace.thinking = (trace.thinking || "") + ev.text;
+        set(trace, ev.node, "running", "thinking…");
+      } else if (ev.type === "token") set(trace, ev.node, "running", "writing the answer…");
       else if (ev.type === "step") step(trace, ev);
       else if (ev.type === "done") {
         set(trace, "answer", "done", `${ev.sources.length} source${ev.sources.length === 1 ? "" : "s"} · total ${fmt(ev.ms)}`);
@@ -603,7 +623,7 @@
         const more = ev.model ? [`model ${ev.model}`, "answers only from the retrieved chunks", `took ${fmt(ev.ms)}`]
           : ev.node === "off_topic" ? ["fixed polite refusal", "no LLM call"] : ["no chunks found, so no LLM call"];
         info(trace, ev.node, { ms: ev.ms, more });
-        trace.log.push({ node: ev.node, text: what, ms: ev.ms });
+        trace.log.push({ node: ev.node, text: what, ms: ev.ms, thinking: trace.thinking });
       }
     }
 
@@ -620,8 +640,8 @@
       for (const ev of [null, ...trace.events]) {
         if (ev) apply(copy, ev);
         render();
-        // Hold each running step long enough to watch the packet travel into it
-        await sleep(ev?.type === "running" ? 1300 : 450);
+        // Hold each running step long enough to watch the packet travel into it; streamed words go by quickly
+        await sleep(ev?.type === "running" ? 1300 : ["token", "reasoning"].includes(ev?.type) ? 25 : 450);
         if (selected !== copy) break;  // another message was selected: stop
       }
       replaying = false;
@@ -690,12 +710,20 @@
           const data = await res.json().catch(() => ({}));
           throw new Error(data.detail || "Server returned " + res.status);
         }
-        let finished = false;
+        let finished = false, draft = "";
         for await (const ev of readEvents(res)) {
           trace.events.push(ev);  // kept for replay
           apply(trace, ev);
           update();
           if (ev.type === "running") row.querySelector(".text").textContent = `Working: ${ev.node}...`;
+          if (ev.type === "reasoning" && !draft) row.querySelector(".text").textContent = "Working: thinking...";
+          if (ev.type === "token") {
+            // The answer appears word by word as the model writes it
+            draft += ev.text;
+            row.classList.remove("pending");
+            row.querySelector(".text").textContent = draft.trimStart();
+            messages.scrollTop = messages.scrollHeight;
+          }
           if (ev.type === "done") {
             finished = true;
             row.classList.remove("pending");
@@ -742,7 +770,7 @@
     const wave = voice.querySelector("canvas");
     const live = voice.querySelector(".live");
     const clock = voice.querySelector(".clock");
-    const LIVE_EVERY_MS = 750, MAX_SECONDS = 30, BAR = 4;  // BAR: px per wave bar, gap included
+    const LIVE_EVERY_MS = 500, MAX_SECONDS = 30, BAR = 4;  // BAR: px per wave bar, gap included
     let recording = null;
 
     // live: the fast preview model. language: skips Whisper's language detection, which costs as much as the transcription.

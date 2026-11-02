@@ -36,6 +36,9 @@ langsmith==0.14.16
 loguru==0.7.3
 mmh3==5.3.1
 numpy==2.5.4
+nvidia-cublas-cu12==12.9.2.10
+nvidia-cuda-nvrtc-cu12==12.9.86
+nvidia-cudnn-cu12==9.27.0.42
 onnxruntime==1.31.1
 openai==3.31.0
 opentelemetry-api==1.45.2

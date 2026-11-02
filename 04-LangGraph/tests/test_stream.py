@@ -15,12 +15,20 @@ CHUNKS = [
 ]
 
 
+def piece(content=None, reasoning=None):
+    """One streamed piece of a reply, shaped like the OpenAI SDK's ChatCompletionChunk."""
+    delta = SimpleNamespace(content=content, reasoning=reasoning)
+    return SimpleNamespace(model="fake-model", choices=[SimpleNamespace(delta=delta)])
+
+
 def fake_llm(route):
-    """An OpenAI-like client: answers the classify prompt with `route`, anything else with a padded answer."""
+    """An OpenAI-like client: answers the classify prompt with `route`; the answer call streams
+    a thought, then a padded answer a few characters at a time."""
     def create(model, messages, **kwargs):
-        is_classify = messages[0]["content"] == main.CLASSIFY_PROMPT
-        content = route if is_classify else "\n\n1. do it [a.md]\n"
-        return SimpleNamespace(model="fake-model", choices=[SimpleNamespace(message=SimpleNamespace(content=content))])
+        if messages[0]["content"] == main.CLASSIFY_PROMPT:
+            return SimpleNamespace(model="fake-model", choices=[SimpleNamespace(message=SimpleNamespace(content=route))])
+        assert kwargs["stream"] is True
+        return iter([piece(reasoning="Use a.md."), piece("\n\n1. do"), piece(" it"), piece(" [a.md]\n")])
     return SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
 
 
@@ -32,6 +40,11 @@ def stream(question):
     return [json.loads(block.removeprefix("data: ")) for block in response.text.split("\n\n") if block]
 
 
+def without_text(events):
+    """The node events, without the streamed answer text."""
+    return [e for e in events if e["type"] not in ("token", "reasoning")]
+
+
 @pytest.mark.parametrize(
     "route, answer_node",
     [("troubleshooting", "troubleshoot"), ("knowledge", "knowledge"), ("other", "off_topic")],
@@ -40,7 +53,7 @@ def test_event_sequence(monkeypatch, route, answer_node):
     monkeypatch.setattr(main, "client", fake_llm(route))
     monkeypatch.setattr(main, "nearest_chunks", lambda vector, k=main.TOP_K: CHUNKS)
 
-    events = stream("my pod keeps crashing")
+    events = without_text(stream("my pod keeps crashing"))
 
     nodes = ["classify"] + ([] if route == "other" else ["retrieve"]) + [answer_node]
     expected = [("start", None)]
@@ -65,6 +78,21 @@ def test_event_sequence(monkeypatch, route, answer_node):
         assert steps[answer_node]["model"] == "fake-model"
         assert done["answer"] == "1. do it [a.md]"
         assert done["sources"] == ["a.md"]
+
+
+def test_answer_streams_word_by_word(monkeypatch):
+    monkeypatch.setattr(main, "client", fake_llm("knowledge"))
+    monkeypatch.setattr(main, "nearest_chunks", lambda vector, k=main.TOP_K: CHUNKS)
+
+    events = stream("how do we deploy?")
+
+    tokens = [e for e in events if e["type"] == "token"]
+    assert "".join(e["text"] for e in tokens) == "\n\n1. do it [a.md]\n"
+    assert all(e["node"] == "knowledge" for e in tokens)
+    assert [e["text"] for e in events if e["type"] == "reasoning"] == ["Use a.md."]
+    # The text arrives while the answer node runs: after it starts, before its step event
+    types = [(e["type"], e.get("node")) for e in events]
+    assert types.index(("running", "knowledge")) < events.index(tokens[0]) < types.index(("step", "knowledge"))
 
 
 def test_database_error_names_the_running_node(monkeypatch):
