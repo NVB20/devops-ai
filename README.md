@@ -106,6 +106,8 @@ question → [classify] ── other ──────────► "I only h
 
 `/chat` also returns `searches` and `clarify`. `/chat/stream` adds the agent loop's events: `llm` (one per LLM call: search, answer or clarify), `tool` (one per search: query, chunks, ms), and `token` / `reasoning` (the reply as it is written).
 
+The ▶ button next to the input plays an example question for real, through OpenRouter. **Fast** sends it like a typed message. **Guided** holds each step for a moment and captions it above the diagram (the route, what OpenRouter decided, what pgvector returned and its best match), so you can follow the RAG loop step by step.
+
 Tests (fake LLM and database):
 
 ```powershell

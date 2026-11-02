@@ -2,6 +2,8 @@
 import json
 from types import SimpleNamespace
 
+import httpx
+import openai
 import psycopg
 import pytest
 from fastapi.testclient import TestClient
@@ -162,6 +164,25 @@ def test_database_error_names_the_search(monkeypatch):
     assert events[-1]["node"] == "troubleshoot"
     assert events[-1]["part"] == "db"
     assert "connection refused" in events[-1]["detail"]
+
+
+def rate_limited(model, messages, **kwargs):
+    """OpenRouter's reply once the free tier's requests are used up: a 429 with a long JSON body."""
+    response = httpx.Response(429, request=httpx.Request("POST", "https://openrouter.ai/api/v1/chat/completions"))
+    raise openai.RateLimitError("Error code: 429 - {'error': {'message': 'Rate limit exceeded: free-models-per-day. ...'}}",
+                                response=response, body=None)
+
+
+def test_rate_limit_gets_a_short_error(monkeypatch):
+    monkeypatch.setattr(main, "client", SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=rate_limited))))
+
+    events = stream("pods are pending")
+    with TestClient(main.app) as client:
+        response = client.post("/chat", json={"message": "pods are pending"})
+
+    assert events[-1]["type"] == "error" and events[-1]["part"] == "llm"
+    assert events[-1]["detail"] == main.RATE_LIMITED
+    assert response.status_code == 429 and response.json()["detail"] == main.RATE_LIMITED
 
 
 def test_chat_endpoint_returns_the_agent_answer(monkeypatch):

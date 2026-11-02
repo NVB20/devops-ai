@@ -89,8 +89,29 @@
     }
     form button svg { width: 18px; height: 18px; }
     form button:disabled { opacity: .45; cursor: default; box-shadow: none; }
-    form .mic { background: var(--card); color: var(--muted); border: 1px solid var(--border); box-shadow: none; }
-    form .mic:hover { color: var(--text); border-color: var(--line); }
+    form .mic, form .play { background: var(--card); color: var(--muted); border: 1px solid var(--border); box-shadow: none; }
+    form .mic:hover, form .play:hover { color: var(--text); border-color: var(--line); }
+    form .play[aria-expanded="true"] { color: var(--accent); border-color: var(--accent); }
+    /* The examples ▶ opens, just above the input bar */
+    .chat { position: relative; }
+    .examples {
+      position: absolute; z-index: 5; right: 16px; bottom: 70px; width: min(420px, calc(100% - 32px)); padding: 10px;
+      border: 1px solid var(--line); border-radius: 18px; background: var(--card); box-shadow: 0 14px 36px rgba(0, 0, 0, .5);
+    }
+    .examples[hidden] { display: none; }
+    .examples .modes { display: flex; align-items: center; gap: 10px; margin: 2px 4px 8px; }
+    .examples .switch { display: flex; padding: 3px; border: 1px solid var(--border); border-radius: 999px; }
+    .examples .switch button {
+      padding: 3px 12px; border: 0; border-radius: 999px; background: none; color: var(--muted); font: 11px var(--mono); cursor: pointer;
+    }
+    .examples .switch button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+    .examples .hint { min-width: 0; font-size: 11.5px; color: var(--muted); }
+    .examples .example {
+      display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px; width: 100%; padding: 8px 10px;
+      border: 1px solid transparent; border-radius: 12px; background: none; color: var(--text); font: inherit; font-size: 13px; text-align: left; cursor: pointer;
+    }
+    .examples .example:hover, .examples .example:focus-visible { border-color: var(--accent); background: var(--panel); outline: none; }
+    .examples .example .tag { font: 11px var(--mono); color: var(--muted); }
     form .mic.listening { color: var(--accent); border-color: var(--accent); box-shadow: 0 0 18px var(--accent-glow); animation: pulse 1.1s ease-in-out infinite; }
     form .mic[hidden] { display: none; }
     .voice {
@@ -106,6 +127,18 @@
     /* ── Architecture panel ── */
     .arch { overflow-y: auto; }
     .arch-body { width: 100%; max-width: 640px; margin: 0 auto; padding: 24px 20px; }
+    /* Guided play: what the step that just happened did, kept in view while the panel scrolls */
+    .caption {
+      position: sticky; top: 0; z-index: 3; display: flex; align-items: baseline; gap: 10px; margin: 0 0 18px; padding: 10px 14px;
+      border: 1px solid var(--accent); border-radius: 14px; background: var(--card); box-shadow: 0 0 18px var(--accent-soft);
+      font-size: 13px; overflow-wrap: anywhere;
+    }
+    .caption[hidden] { display: none; }
+    .caption::before { content: "GUIDED"; flex: none; font: 600 9.5px var(--mono); letter-spacing: .14em; color: var(--accent); }
+    .caption b { font-weight: 600; color: var(--accent); }
+    .caption code { font: 12px var(--mono); color: var(--accent); }
+    .caption.error { border-color: var(--danger); box-shadow: 0 0 18px var(--danger-soft); }
+    .caption.error::before { color: var(--danger); }
     /* One spacing for every row, inside and outside the LangGraph group */
     .diagram { --row: 40px; position: relative; display: flex; flex-direction: column; align-items: center; gap: var(--row); }
     .diagram svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
@@ -291,8 +324,25 @@
         <span class="live" dir="auto"></span>
         <span class="clock"></span>
       </div>
+      <div class="examples" id="examples" role="dialog" aria-label="Play an example" hidden>
+        <div class="modes">
+          <div class="switch">
+            <button type="button" data-mode="guided">Guided</button>
+            <button type="button" data-mode="fast">Fast</button>
+          </div>
+          <span class="hint" id="mode-hint"></span>
+        </div>
+        <button type="button" class="example"><span class="q">My pod keeps going into CrashLoopBackOff</span><span class="tag">troubleshooting · searches</span></button>
+        <button type="button" class="example"><span class="q">How do we rotate database credentials?</span><span class="tag">knowledge</span></button>
+        <button type="button" class="example"><span class="q">Pods are pending and a node is NotReady</span><span class="tag">troubleshooting · several searches</span></button>
+        <button type="button" class="example"><span class="q">Something is broken</span><span class="tag">clarifying question</span></button>
+        <button type="button" class="example"><span class="q">What's the best pizza in town?</span><span class="tag">off-topic · no agent</span></button>
+      </div>
       <form id="form">
         <input id="input" dir="auto" autocomplete="off" placeholder="Write anything here ..." required>
+        <button type="button" id="play" class="play" aria-label="Play an example" title="Play an example" aria-haspopup="dialog" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.6v12.8a.8.8 0 0 0 1.2.7l10.2-6.4a.8.8 0 0 0 0-1.4L9.2 4.9a.8.8 0 0 0-1.2.7z"/></svg>
+        </button>
         <button type="button" id="mic" class="mic" aria-label="Speak your question" title="Speak your question" hidden>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 17v5"/></svg>
         </button>
@@ -313,6 +363,7 @@
         </div>
       </header>
       <div class="arch-body">
+        <p class="caption" id="caption" aria-live="polite" hidden><span></span></p>
         <div class="legend">
           <span class="running"><i></i>running</span>
           <span class="done"><i></i>done</span>
@@ -362,6 +413,7 @@
     const svg = document.getElementById("edges");
     const logRows = document.getElementById("log-rows");
     const logQuestion = document.getElementById("log-question");
+    const caption = document.getElementById("caption");
 
     // The stations. llm / code / db are the three parts of the agent loop panel ("loop"), which has its own state too.
     const NODES = ["chat", "api", "classify", "off_topic", "troubleshoot", "knowledge", "llm", "code", "db", "answer"];
@@ -425,6 +477,11 @@
       logQuestion.textContent = trace.question ? `· “${trace.question}”` : "";
       logRows.replaceChildren(...(trace.log.length ? trace.log.map(logRow) : [emptyLog()]));
       replayButton.hidden = replaying || trace.live || !trace.events.length;
+      caption.hidden = !(trace.guided && trace.caption);
+      if (!caption.hidden) {
+        caption.classList.toggle("error", !!trace.caption.error);
+        caption.firstElementChild.replaceChildren(...trace.caption.parts);
+      }
       renderLoop(trace);
       // The LangGraph glow breathes while one of its steps runs, and its gate label stays lit once the graph was used
       const graphBox = diagram.querySelector(".graph-box"), inGraph = NODES.filter(id => !["chat", "api", "answer"].includes(id));
@@ -801,6 +858,51 @@
 
     replayButton.addEventListener("click", () => selected && replay(selected));
 
+    // ── Guided play: the real run, held at each step long enough to read a caption that explains it ──
+    const strong = text => Object.assign(document.createElement("b"), { textContent: text });
+    const code = text => Object.assign(document.createElement("code"), { textContent: text });
+
+    // The caption for an event, as strings and elements, or null when the event doesn't change it
+    function captionFor(trace, ev) {
+      if (ev.type === "start") return ["Your question reaches FastAPI ", code("POST /chat/stream"), ", which runs the LangGraph graph"];
+      if (ev.type === "running" && ev.node === "classify") return [strong("classify"), ": one quick OpenRouter call picks troubleshooting, knowledge or off-topic"];
+      if (ev.type === "running" && AGENTS[ev.node]) return ["The ", strong(AGENTS[ev.node]), " sends your question to OpenRouter along with a ", code("search_runbooks"), " tool"];
+      if (ev.type === "running" && ev.node === "off_topic") return ["Not a DevOps question: a fixed reply, no OpenRouter answer, no search"];
+      if (ev.type === "step" && ev.node === "classify") return ["Routed to ", strong(ev.route)];
+      if (ev.type === "llm") {
+        const by = `OpenRouter${ev.model ? ` (${ev.model})` : ""}`;
+        if (ev.action === "search") return [`${by} chose to search: `, strong(ev.queries.map(quote).join(", "))];
+        if (ev.action === "clarify") return [`${by} needs more detail and asks you a clarifying question`];
+        return [`${by} ${trace.loop.searches ? "has enough context and is writing the answer from those excerpts" : "answers without searching"}`];
+      }
+      if (ev.type === "tool") {
+        const n = ev.chunks.length, top = ev.chunks[0];
+        return top
+          ? [code("search_runbooks"), ` embedded ${quote(ev.query)} and pgvector returned ${n} chunk${n === 1 ? "" : "s"}. Best match: `, code(top.source), ` (${top.similarity})`]
+          : [code("search_runbooks"), ` embedded ${quote(ev.query)}, but no chunk scored above 0.3`];
+      }
+      if (ev.type === "done") {
+        return ["Done: ", ev.sources.length ? "cites " : "", strong(ev.sources.join(", ") || "no runbook"),
+                ` · ${ev.searches ? `${ev.searches} search${ev.searches === 1 ? "" : "es"}` : "no search"} · ${fmt(ev.ms)}`];
+      }
+      // The diagram marks the part that failed. The full error is in the chat row and the step log; the caption keeps it short.
+      if (ev.type === "error") return [`Error: ${ev.detail.length > 140 ? ev.detail.slice(0, 140) + "…" : ev.detail}`];
+      return null;
+    }
+
+    // Sets the trace's caption when the event has one; says whether it did
+    function narrate(trace, ev) {
+      const parts = captionFor(trace, ev);
+      if (parts) trace.caption = { parts, error: ev.type === "error" };
+      return !!parts;
+    }
+
+    // A new caption stays up long enough to read. Streamed words aren't held: the model already paces them.
+    function guidedPause(ev, captioned) {
+      const ms = captioned ? 1800 : ["token", "reasoning"].includes(ev.type) ? 0 : 450;
+      return sleep(REDUCED_MOTION ? ms / 2 : ms);
+    }
+
     // ── Reading the Server-Sent Events stream ──
     async function* readEvents(res) {
       const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
@@ -838,17 +940,19 @@
       render();
     }
 
-    async function ask(text) {
+    // guided: hold each step and caption it (the ▶ examples in Guided mode)
+    async function ask(text, { guided = false } = {}) {
       addRow("user", text);
       const trace = newTrace(text);
       trace.live = true;  // no replay while the real run is still going
+      trace.guided = guided;
       begin(trace);
       const row = addRow("bot pending", "Working: sending...");
       row.addEventListener("click", () => select(row, trace));
       select(row, trace);
       const meta = row.querySelector(".meta");
       const update = () => { if (selected === trace) render(); };
-      send.disabled = true;
+      send.disabled = play.disabled = true;
 
       try {
         const res = await fetch("/chat/stream", {
@@ -866,6 +970,8 @@
         for await (const ev of readEvents(res)) {
           trace.events.push(ev);  // kept for replay
           apply(trace, ev);
+          // Events that arrive during a guided pause wait in the response stream; none are lost
+          const captioned = guided && narrate(trace, ev);
           update();
           if (ev.type === "running") status(AGENTS[ev.node] ? `Working: ${AGENTS[ev.node]} is thinking...` : `Working: ${ev.node}...`);
           if (ev.type === "reasoning" && !draft) status("Working: thinking...");
@@ -895,17 +1001,19 @@
             row.classList.replace("pending", "failed");
             row.querySelector(".text").textContent = "Error: " + ev.detail;
           }
+          if (guided && !finished) await guidedPause(ev, captioned);
         }
         if (!finished) throw new Error("Connection lost");
       } catch (err) {
         failRunning(trace, err.message);
+        if (guided) trace.caption = { parts: ["Error: " + err.message], error: true };
         update();
         row.classList.replace("pending", "failed");
         row.querySelector(".text").textContent = "Error: " + err.message;
       } finally {
         trace.live = false;
         update();
-        send.disabled = false;
+        send.disabled = play.disabled = false;
         input.focus();
       }
     }
@@ -1055,6 +1163,42 @@
     for (const button of document.querySelectorAll(".empty button")) {
       button.addEventListener("click", () => { if (!send.disabled) ask(button.textContent); });
     }
+
+    // ── ▶ Play an example: Fast sends it like a typed message, Guided slows the real run down and captions it ──
+    const play = document.getElementById("play");
+    const examples = document.getElementById("examples");
+    const modeHint = document.getElementById("mode-hint");
+    const MODE_HINTS = { guided: "slowed down, a caption for each step", fast: "normal speed, like a typed message" };
+    let playMode = "guided";
+    try { if (localStorage.getItem("play-mode") === "fast") playMode = "fast"; } catch {}
+
+    function setMode(mode) {
+      playMode = mode;
+      for (const b of examples.querySelectorAll("[data-mode]")) b.setAttribute("aria-pressed", b.dataset.mode === mode);
+      modeHint.textContent = MODE_HINTS[mode];
+      try { localStorage.setItem("play-mode", mode); } catch {}
+    }
+
+    function showExamples(open) {
+      examples.hidden = !open;
+      play.setAttribute("aria-expanded", open);
+    }
+
+    setMode(playMode);
+    play.addEventListener("click", () => showExamples(examples.hidden));
+    for (const b of examples.querySelectorAll("[data-mode]")) b.addEventListener("click", () => setMode(b.dataset.mode));
+    for (const b of examples.querySelectorAll(".example")) {
+      b.addEventListener("click", () => {
+        showExamples(false);
+        if (!send.disabled) ask(b.querySelector(".q").textContent, { guided: playMode === "guided" });
+      });
+    }
+    document.addEventListener("click", e => {
+      if (!examples.hidden && !examples.contains(e.target) && !play.contains(e.target)) showExamples(false);
+    });
+    document.addEventListener("keydown", e => {
+      if (e.key === "Escape" && !examples.hidden) { showExamples(false); play.focus(); }
+    });
 
     // ── The orb on the empty chat: wavy rings that lean and bulge toward the cursor ──
     function startOrb(canvas) {

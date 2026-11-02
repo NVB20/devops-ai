@@ -18,7 +18,7 @@ from fastembed import TextEmbedding
 from faster_whisper import WhisperModel
 from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
-from openai import OpenAI, OpenAIError
+from openai import OpenAI, OpenAIError, RateLimitError
 from pgvector.psycopg import register_vector
 from pydantic import BaseModel
 
@@ -102,6 +102,8 @@ Examples:
 
 ROUTES = ("troubleshooting", "knowledge", "other")
 OFF_TOPIC_ANSWER = "Sorry, I only help with DevOps questions about our systems and runbooks."
+# OpenRouter's 429 (the free tier's per-minute or per-day limit) comes with a long JSON body: show this instead
+RATE_LIMITED = "OpenRouter limit reached, try again later"
 
 app = FastAPI(
     title="DevOps AI Chatbot",
@@ -350,6 +352,8 @@ def chat(request: ChatRequest):
         result = graph.invoke({"question": request.message})
     except psycopg.Error as e:
         raise HTTPException(status_code=503, detail=f"Knowledge base unavailable: {e}")
+    except RateLimitError:
+        raise HTTPException(status_code=429, detail=RATE_LIMITED)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
 
@@ -406,7 +410,8 @@ def chat_stream(request: ChatRequest):
             yield sse({"type": "error", "node": node, "part": "db", "detail": f"Knowledge base unavailable: {e}"})
             return
         except OpenAIError as e:
-            yield sse({"type": "error", "node": node, "part": "llm", "detail": str(e)})
+            detail = RATE_LIMITED if isinstance(e, RateLimitError) else str(e)
+            yield sse({"type": "error", "node": node, "part": "llm", "detail": detail})
             return
         except Exception as e:
             yield sse({"type": "error", "node": node, "detail": str(e)})
