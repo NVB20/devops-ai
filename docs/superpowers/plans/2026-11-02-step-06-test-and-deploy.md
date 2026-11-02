@@ -87,7 +87,7 @@ git commit -m "Step 06: start from a copy of step 05"
 - [ ] **Step 1: Write the failing tests**: create `06-Deploy/tests/test_health.py`
 
 ```python
-"""Checks that /health reports the database. The "down" test uses a real connection to a closed port, so no Postgres is needed."""
+"""Checks that /health reports the database. The "down" test makes a real connection attempt to a host that cannot exist, so no Postgres is needed."""
 from fastapi.testclient import TestClient
 
 from app import main
@@ -103,15 +103,15 @@ def test_health_reports_the_database_is_up(monkeypatch):
 
 
 def test_health_reports_the_database_is_down(monkeypatch):
-    # Nothing listens on port 1: psycopg fails to connect, as when the database container is stopped
-    monkeypatch.setattr(main, "DATABASE_URL", "postgresql://devops:devops@127.0.0.1:1/knowledge")
+    # .invalid never resolves (RFC 6761): psycopg fails at once, as in Docker when the db container is gone
+    monkeypatch.setattr(main, "DATABASE_URL", "postgresql://devops:devops@db.invalid/knowledge")
 
     with TestClient(main.app) as client:
         response = client.get("/health")
     assert response.status_code == 503
     body = response.json()
     assert body["status"] == "unhealthy" and body["database"] == "down"
-    assert "127.0.0.1" in body["detail"]  # psycopg's message names the server it couldn't reach
+    assert "db.invalid" in body["detail"]  # psycopg's message names the server it couldn't reach
 ```
 
 - [ ] **Step 2: Run them to see them fail**
@@ -151,7 +151,7 @@ def health():
 - [ ] **Step 4: Run all the tests**
 
 Run: `venv\Scripts\python -m pytest tests -q`
-Expected: `16 passed`. The down test takes about 2 s, because Windows retries a refused connection before giving up.
+Expected: `16 passed`. (Not `127.0.0.1:1`: on Windows a closed local port runs into the 3 s `connect_timeout`, and the message then doesn't name the host.)
 
 - [ ] **Step 5: Check it by hand against the real database** (Postgres running from the repo root's `docker compose up -d db`)
 
@@ -161,7 +161,7 @@ venv\Scripts\uvicorn app.main:app --port 8000
 curl.exe -s -w " %{http_code}\n" http://127.0.0.1:8000/health
 ```
 
-Expected: `{"status":"healthy","database":"up","chunks":177} 200`. Then run `docker stop devops-ai-db` from the repo root and repeat the curl. Expected: `{"status":"unhealthy","database":"down","detail":"connection failed: ..."} 503`. Run `docker start devops-ai-db` afterwards.
+Expected: `{"status":"healthy","database":"up","chunks":177} 200`. Then run `docker stop devops-ai-db` from the repo root and repeat the curl. Expected: `{"status":"unhealthy","database":"down","detail":"connection timeout expired"} 503` (on Windows the stopped port times out instead of refusing). Run `docker start devops-ai-db` afterwards.
 
 - [ ] **Step 6: Commit**
 
@@ -540,7 +540,7 @@ docker compose exec app python -m pytest tests -p no:cacheprovider   # inside th
 ```
 
 - `test_stream.py`: the agent loop and `/chat/stream`, with a fake LLM and database (from step 05).
-- `test_health.py`: `/health` up, and down (a real connection to a closed port).
+- `test_health.py`: `/health` up, and down (a real connection attempt to a host that can't exist).
 - `test_retrieval.py`: 30 known questions, one per runbook, worded the way an engineer asks. Each must find its runbook as the **first** search result, through the real embedding model and database, with no LLM. It also checks that every runbook has a question, that "pods are pending and a node is NotReady" finds both runbooks, and that off-topic questions find nothing. Skipped when Postgres isn't reachable.
 ````
 
