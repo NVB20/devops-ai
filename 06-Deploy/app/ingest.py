@@ -1,6 +1,6 @@
 """Load the runbooks in knowledge-base/, split them into chunks, embed them and store them in Postgres.
 
-Run from the 03-RAG folder:  python -m app.ingest
+Run from the 06-Deploy folder:  python -m app.ingest
 Re-running is safe: the table is emptied and filled again.
 """
 import os
@@ -14,7 +14,8 @@ from pgvector.psycopg import register_vector
 # Reads DATABASE_URL from the .env in the repo root
 load_dotenv()
 
-KB_DIR = Path(__file__).resolve().parents[2] / "knowledge-base"
+# The repo's knowledge-base/ folder; the Docker image keeps it at /knowledge-base and sets KB_DIR
+KB_DIR = Path(os.getenv("KB_DIR") or Path(__file__).resolve().parents[2] / "knowledge-base")
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://devops:devops@127.0.0.1:5435/knowledge")
 EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"  # 384-dim vectors
 MAX_WORDS = 150  # the model only reads the first ~256 tokens of a chunk

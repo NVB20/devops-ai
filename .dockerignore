@@ -1,0 +1,7 @@
+# Send the build only what the image needs (the context is the repo root)
+*
+!06-Deploy/app
+!06-Deploy/tests
+!knowledge-base
+**/__pycache__
+**/*.pyc

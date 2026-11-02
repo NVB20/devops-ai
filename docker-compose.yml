@@ -1,5 +1,18 @@
-# Postgres + pgvector for the RAG knowledge base (stage 2)
-# Start: docker compose up -d    Stop: docker compose down    Wipe data: docker compose down -v
+# The step 06 chatbot and its Postgres + pgvector knowledge base.
+# Start all: docker compose up -d --build    Only the database (steps 03-05): docker compose up -d db
+# Stop: docker compose down    Wipe data: docker compose down -v
+
+# What the ingest and app services share: one image, and the database inside the compose network
+x-chatbot: &chatbot
+  build:
+    context: .
+    dockerfile: 06-Deploy/Dockerfile
+  image: devops-ai-app
+  environment:
+    DATABASE_URL: postgresql://${POSTGRES_USER:-devops}:${POSTGRES_PASSWORD:-devops}@db:5432/${POSTGRES_DB:-knowledge}
+    OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}  # from the .env in the repo root
+    OPENROUTER_MODEL: ${OPENROUTER_MODEL:-openrouter/free}
+
 services:
   db:
     image: pgvector/pgvector:pg17
@@ -18,6 +31,31 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    restart: unless-stopped
+
+  # Loads the runbooks into the chunks table, then exits. Safe to re-run: it empties the table first.
+  ingest:
+    <<: *chatbot
+    command: ["python", "-m", "app.ingest"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
+    <<: *chatbot
+    container_name: devops-ai-app
+    ports:
+      - "127.0.0.1:8081:8000" # not 8000, so uvicorn --reload on a step still works next to it
+    depends_on:
+      ingest:
+        condition: service_completed_successfully
+    # /health returns 503 when the database is down, and urlopen raises on it: the container shows as unhealthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"]
+      interval: 10s
+      timeout: 6s
+      retries: 3
+      start_period: 30s
     restart: unless-stopped
 
 volumes:
