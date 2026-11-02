@@ -9,6 +9,7 @@ My work on the [DevOps Mentor–Mentee project](https://github.com/yehudasho/din
 | 03 | [03-RAG](./03-RAG) – answers from our runbooks (RAG with Postgres + pgvector), with sources | ✅ |
 | 04 | [04-LangGraph](./04-LangGraph) – LangGraph routes each question (troubleshooting / knowledge / other) | ✅ |
 | 05 | [05-Agents](./05-Agents) – a Troubleshooting Agent and a Knowledge Agent that search the runbooks themselves | ✅ |
+| 06 | [06-Deploy](./06-Deploy) – tested retrieval, `/health` that checks the database, everything in Docker | ✅ |
 
 ## Setup (once)
 
@@ -25,7 +26,7 @@ Get a key at https://openrouter.ai/workspaces/default/keys. `openrouter/free` pi
 ## Knowledge base database (Postgres + pgvector)
 
 ```powershell
-docker compose up -d      # start (first run creates the DB and enables the vector extension)
+docker compose up -d db   # only the database (steps 03-05; first run creates the DB and enables the vector extension)
 docker compose ps         # should show devops-ai-db as healthy
 docker exec -it devops-ai-db psql -U devops -d knowledge   # SQL shell
 docker compose down       # stop (data is kept in the pgdata volume)
@@ -120,6 +121,40 @@ python -m tests.live_check 7 8    # only "something is broken" and "pods are pen
 ```
 
 It prints each answer with its searches and sources, and flags a wrong route, a troubleshooting answer missing a part or out of order, a knowledge answer without `Steps:`, a missing citation, a vague question that didn't get one clarifying question, and the pods/node question not citing both `kubernetes-pod-pending.md` and `kubernetes-node-notready.md`.
+
+### Test and deploy (step 06)
+
+The step 05 app with tests on what it retrieves, a health check that knows about the database, and Docker.
+
+**Run everything in Docker** (needs the `.env` from Setup, for the OpenRouter key):
+
+```powershell
+docker compose up -d --build   # database, then ingest (loads the runbooks, then exits), then the app
+docker compose ps -a           # devops-ai-db and devops-ai-app healthy, ingest Exited (0)
+```
+
+The chat is at http://127.0.0.1:8081/ui (8081, so `uvicorn` on 8000 still works for the other steps). The image is built from `06-Deploy/Dockerfile`, with the repo root as the build context because it needs `knowledge-base/` too. `.dockerignore` sends it only the app, its tests and the runbooks. The embedding model is downloaded when the image is built. In Docker, Whisper runs on the CPU and downloads its model (~480 MB) on the first voice message.
+
+**`/health`** runs `SELECT count(*) FROM chunks`:
+
+| Database | Response |
+|---|---|
+| up | `200 {"status": "healthy", "database": "up", "chunks": 177}` |
+| down, or the `chunks` table is missing | `503 {"status": "unhealthy", "database": "down", "detail": "..."}` |
+
+The app container's healthcheck calls it, so `docker stop devops-ai-db` turns `devops-ai-app` unhealthy in about 40 s, and `docker start devops-ai-db` brings it back.
+
+**Tests:**
+
+```powershell
+cd 06-Deploy
+python -m pytest tests                                           # local venv
+docker compose exec app python -m pytest tests -p no:cacheprovider   # inside the running container
+```
+
+- `test_stream.py`: the agent loop and `/chat/stream`, with a fake LLM and database (from step 05).
+- `test_health.py`: `/health` up, and down (a real connection attempt to a host that can't exist).
+- `test_retrieval.py`: 30 known questions, one per runbook, worded the way an engineer asks. Each must find its runbook as the **first** search result, through the real embedding model and database, with no LLM. It also checks that every runbook has a question, that "pods are pending and a node is NotReady" finds both runbooks, and that off-topic questions find nothing. Skipped when Postgres isn't reachable.
 
 ## Run a step (PowerShell)
 
