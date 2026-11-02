@@ -15,7 +15,7 @@
 - Don't stage `Project AI - Knowledge Base.pdf` (untracked, not part of this step). Always `git add` explicit paths.
 - The database, the `chunks` table and the chunking stay the same. In this step the app runs the same `ingest.py` inside Docker.
 - Retrieval rule: a known question passes only if its runbook is the **first** result of `search()`. All 30 questions below were checked against the real database on 2026-11-02 (177 chunks): 30/30 rank 1.
-- Ports: the database stays on `127.0.0.1:5435`. The app container listens on **`127.0.0.1:8080`**, so it doesn't clash with `uvicorn --reload` on 8000 when you work on a step locally.
+- Ports: the database stays on `127.0.0.1:5435`. The app container listens on **`127.0.0.1:8081`**, so it doesn't clash with `uvicorn --reload` on 8000 when you work on a step locally (8080 is taken by another project's container on this machine).
 - Inside Docker, Whisper runs on the CPU (`small` model, downloaded on the first `/transcribe`). The NVIDIA packages are installed on Windows only.
 - App version: `6.0.0`.
 
@@ -299,7 +299,7 @@ git commit -m "Step 06: test that 30 known questions find their runbook first"
 
 **Interfaces:**
 - Consumes: `GET /health` status codes from Task 2 (the container healthcheck).
-- Produces: image `devops-ai-app`, and compose services `db`, `ingest` and `app`. The app is at `http://127.0.0.1:8080`.
+- Produces: image `devops-ai-app`, and compose services `db`, `ingest` and `app`. The app is at `http://127.0.0.1:8081`.
 
 - [ ] **Step 1: Let the container say where the runbooks are.** In `06-Deploy/app/ingest.py`, replace the `KB_DIR` line:
 
@@ -416,7 +416,7 @@ services:
     <<: *chatbot
     container_name: devops-ai-app
     ports:
-      - "127.0.0.1:8080:8000" # not 8000, so uvicorn --reload on a step still works next to it
+      - "127.0.0.1:8081:8000" # not 8000, so uvicorn --reload on a step still works next to it
     depends_on:
       ingest:
         condition: service_completed_successfully
@@ -450,12 +450,12 @@ Expected: `devops-ai-db` is `Up (healthy)`. The ingest container shows `Exited (
 - [ ] **Step 8: Check the running app**
 
 ```powershell
-curl.exe -s http://127.0.0.1:8080/health
-curl.exe -s "http://127.0.0.1:8080/search?q=no+space+left+on+device"
-curl.exe -N -X POST http://127.0.0.1:8080/chat/stream -H "Content-Type: application/json" -d "{\"message\":\"disk is full\"}"
+curl.exe -s http://127.0.0.1:8081/health
+curl.exe -s "http://127.0.0.1:8081/search?q=no+space+left+on+device"
+curl.exe -N -X POST http://127.0.0.1:8081/chat/stream -H "Content-Type: application/json" -d "{\"message\":\"disk is full\"}"
 ```
 
-Expected: `{"status":"healthy","database":"up","chunks":177}`. The search's first result has `"source":"disk-full.md"`. The stream ends with a `done` event whose `sources` include `disk-full.md` (this uses 2–4 free-tier requests). Then open http://127.0.0.1:8080/ui and ask a question.
+Expected: `{"status":"healthy","database":"up","chunks":177}`. The search's first result has `"source":"disk-full.md"`. The stream ends with a `done` event whose `sources` include `disk-full.md` (this uses 2–4 free-tier requests). Then open http://127.0.0.1:8081/ui and ask a question.
 
 - [ ] **Step 9: Run the whole test suite inside the container, against the compose database**
 
@@ -469,7 +469,7 @@ Expected: `51 passed`. `-p no:cacheprovider` stops pytest from trying to write `
 
 ```powershell
 docker stop devops-ai-db
-curl.exe -s -w " %{http_code}\n" http://127.0.0.1:8080/health
+curl.exe -s -w " %{http_code}\n" http://127.0.0.1:8081/health
 # wait ~30 s (3 failed checks, 10 s apart)
 docker compose ps app
 docker start devops-ai-db
@@ -520,7 +520,7 @@ docker compose up -d --build   # database, then ingest (loads the runbooks, then
 docker compose ps -a           # devops-ai-db and devops-ai-app healthy, ingest Exited (0)
 ```
 
-The chat is at http://127.0.0.1:8080/ui (8080, so `uvicorn` on 8000 still works for the other steps). The image is built from `06-Deploy/Dockerfile`, with the repo root as the build context because it needs `knowledge-base/` too. `.dockerignore` sends it only the app, its tests and the runbooks. The embedding model is downloaded when the image is built. In Docker, Whisper runs on the CPU and downloads its model (~480 MB) on the first voice message.
+The chat is at http://127.0.0.1:8081/ui (8081, so `uvicorn` on 8000 still works for the other steps). The image is built from `06-Deploy/Dockerfile`, with the repo root as the build context because it needs `knowledge-base/` too. `.dockerignore` sends it only the app, its tests and the runbooks. The embedding model is downloaded when the image is built. In Docker, Whisper runs on the CPU and downloads its model (~480 MB) on the first voice message.
 
 **`/health`** runs `SELECT count(*) FROM chunks`:
 
@@ -557,6 +557,6 @@ git commit -m "Step 06: README"
 
 - `cd 06-Deploy; venv\Scripts\python -m pytest tests -q` gives `51 passed` with the database up, and `16 passed, 35 skipped` with it stopped.
 - `docker compose up -d --build` from a clean state (`docker compose down`) brings up `devops-ai-db` and `devops-ai-app` as healthy, with `ingest` `Exited (0)`.
-- `curl http://127.0.0.1:8080/health` gives 200 with the chunk count, and 503 with `"database": "down"` after `docker stop devops-ai-db`.
+- `curl http://127.0.0.1:8081/health` gives 200 with the chunk count, and 503 with `"database": "down"` after `docker stop devops-ai-db`.
 - `docker compose exec app python -m pytest tests -q -p no:cacheprovider` gives `51 passed`.
-- A question in http://127.0.0.1:8080/ui gets a cited answer.
+- A question in http://127.0.0.1:8081/ui gets a cited answer.
