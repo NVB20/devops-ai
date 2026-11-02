@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import sysconfig
 import time
 from functools import cache
@@ -69,11 +70,13 @@ Only after searching, if the runbooks don't cover it, say you couldn't find it i
 Plain text: no tables, no headings, no bold."""
 
 TROUBLESHOOT_PROMPT = f"""You are our on-call DevOps troubleshooting agent.
-If the question is too vague to tell what is broken (like "something is broken"), don't search: reply with ONE short
-clarifying question and nothing else, starting with "CLARIFY:".
-When it does say what is broken (like "my pod keeps crashing"), never ask for names or details: answer from the
-runbooks and keep their placeholders, like <pod> and <namespace>.
-Always answer in exactly this shape:
+FIRST, before anything else, decide: does the question name WHAT is broken (a pod, a node, a disk, a certificate,
+a pipeline, a database...)?
+- No, like "something is broken" or "it doesn't work": do NOT search, searching can't tell you what they mean.
+  Reply with ONE short clarifying question and nothing else, starting with "CLARIFY:".
+- Yes, like "my pod keeps crashing": never ask for names or details. Search the runbooks and answer,
+  keeping their placeholders, like <pod> and <namespace>.
+Answer in exactly this shape:
 Likely cause: one or two sentences
 Check: the commands that confirm it
 Fix: numbered steps with the exact commands
@@ -168,6 +171,13 @@ def tool_query(arguments: str, question: str) -> str:
     return query if isinstance(query, str) and query.strip() else question
 
 
+def is_clarifying(answer: str) -> bool:
+    """A clarifying question: marked with CLARIFY:, or (models forget the mark) a question that cites no runbook."""
+    if answer.startswith(CLARIFY):
+        return True
+    return answer.endswith("?") and not re.search(r"\[[\w.-]+\.md\]", answer)
+
+
 def ms_since(start: float, end: float | None = None) -> int:
     return round(((end or time.perf_counter()) - start) * 1000)
 
@@ -221,7 +231,7 @@ def run_agent(agent: str, prompt: str, question: str) -> dict:
         queries = [tool_query(c["arguments"], question) for c in calls]
         if not calls:
             answer = reply["text"].strip() or "I couldn't find anything about this in the runbooks."
-            clarify = answer.startswith(CLARIFY)
+            clarify = is_clarifying(answer)
             write({"type": "llm", "agent": agent, "turn": turn, "ms": ms_since(started), "model": model,
                    "action": "clarify" if clarify else "answer", "forced": final})
             break

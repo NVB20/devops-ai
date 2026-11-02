@@ -181,6 +181,14 @@ def test_bad_tool_arguments_search_the_question():
     assert main.tool_query('{"query": ""}', "the question") == "the question"
 
 
+def test_clarifying_question_without_the_mark():
+    assert main.is_clarifying("CLARIFY: Which service?")
+    # Models sometimes drop the mark: a question that cites no runbook still counts
+    assert main.is_clarifying("What exactly is broken? For example, a pod, a pipeline, or something else?")
+    assert not main.is_clarifying("Likely cause: disk full [disk-full.md]. Want me to check more?")
+    assert not main.is_clarifying("I couldn't find it in the runbooks.")
+
+
 def fake_whisper(calls):
     """A Whisper stand-in that records which model and language each call used."""
     def model(name):
