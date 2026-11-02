@@ -8,6 +8,7 @@ My work on the [DevOps Mentor–Mentee project](https://github.com/yehudasho/din
 | 02 | [02-AI-AgentTools](./02-AI-AgentTools) – AI answers via OpenRouter | ✅ |
 | 03 | [03-RAG](./03-RAG) – answers from our runbooks (RAG with Postgres + pgvector), with sources | ✅ |
 | 04 | [04-LangGraph](./04-LangGraph) – LangGraph routes each question (troubleshooting / knowledge / other) | ✅ |
+| 05 | [05-Agents](./05-Agents) – a Troubleshooting Agent and a Knowledge Agent that search the runbooks themselves | ✅ |
 
 ## Setup (once)
 
@@ -85,6 +86,40 @@ cd 04-LangGraph
 python -m pip install pytest
 python -m pytest tests
 ```
+
+### Specialized agents (step 05)
+
+Same database as step 03/04, nothing new to ingest. The two answer nodes become real agents, and the `retrieve` node is gone: each agent searches the runbooks itself.
+
+```
+question → [classify] ── other ──────────► "I only help with DevOps" → END
+               ├─ troubleshooting ──► [Troubleshooting Agent] ⇄ search_runbooks → END
+               └─ knowledge ────────► [Knowledge Agent]       ⇄ search_runbooks → END
+```
+
+- `search_runbooks(query)` is the step 03 `search()`, given to the LLM as a tool (OpenAI function calling through OpenRouter). The LLM only asks for a search; our code runs it and sends back the excerpts, each tagged with its runbook file.
+- Each agent may search up to 3 times (`MAX_SEARCHES`), with its own wording each time, for example once per symptom. After the third search it must answer (`tool_choice="none"`).
+- **Troubleshooting Agent**: always answers as `Likely cause` → `Check` → `Fix` → `Escalate if`. If the question is too vague ("something is broken"), it asks one clarifying question instead of searching or guessing.
+- **Knowledge Agent**: answers with a short explanation, then `Steps:`, and can combine several runbooks.
+- Both answer only from what they found and cite it like `[disk-full.md]`. `sources` lists only the runbooks the answer cites.
+
+`/chat` also returns `searches` and `clarify`. `/chat/stream` adds the agent loop's events: `llm` (one per LLM call: search, answer or clarify), `tool` (one per search: query, chunks, ms), and `token` / `reasoning` (the reply as it is written).
+
+Tests (fake LLM and database):
+
+```powershell
+cd 05-Agents
+python -m pytest tests
+```
+
+Check the real answers (needs Postgres, the `.env` key, and about 25 requests from the free tier's 50 a day):
+
+```powershell
+python -m tests.live_check        # all 8 questions
+python -m tests.live_check 7 8    # only "something is broken" and "pods are pending and a node is NotReady"
+```
+
+It prints each answer with its searches and sources, and flags a wrong route, a troubleshooting answer missing a part or out of order, a knowledge answer without `Steps:`, a missing citation, a vague question that didn't get one clarifying question, and the pods/node question not citing both `kubernetes-pod-pending.md` and `kubernetes-node-notready.md`.
 
 ## Run a step (PowerShell)
 
