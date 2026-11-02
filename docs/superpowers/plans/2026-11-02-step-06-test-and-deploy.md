@@ -470,7 +470,7 @@ Expected: `51 passed`. `-p no:cacheprovider` stops pytest from trying to write `
 ```powershell
 docker stop devops-ai-db
 curl.exe -s -w " %{http_code}\n" http://127.0.0.1:8081/health
-# wait ~30 s (3 failed checks, 10 s apart)
+# wait ~40 s (3 failed checks, each ~4 s plus a 10 s interval)
 docker compose ps app
 docker start devops-ai-db
 # wait ~10 s
@@ -529,7 +529,7 @@ The chat is at http://127.0.0.1:8081/ui (8081, so `uvicorn` on 8000 still works 
 | up | `200 {"status": "healthy", "database": "up", "chunks": 177}` |
 | down, or the `chunks` table is missing | `503 {"status": "unhealthy", "database": "down", "detail": "..."}` |
 
-The app container's healthcheck calls it, so `docker stop devops-ai-db` turns `devops-ai-app` unhealthy in about 30 s, and `docker start devops-ai-db` brings it back.
+The app container's healthcheck calls it, so `docker stop devops-ai-db` turns `devops-ai-app` unhealthy in about 40 s, and `docker start devops-ai-db` brings it back.
 
 **Tests:**
 
