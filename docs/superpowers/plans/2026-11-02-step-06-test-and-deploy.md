@@ -555,8 +555,9 @@ git commit -m "Step 06: README"
 
 ## Done when
 
-- `cd 06-Deploy; venv\Scripts\python -m pytest tests -q` gives `51 passed` with the database up, and `16 passed, 35 skipped` with it stopped.
+- `cd 06-Deploy; venv\Scripts\python -m pytest tests -q` gives `52 passed` with the database up, and `17 passed, 35 skipped` with it stopped.
 - `docker compose up -d --build` from a clean state (`docker compose down`) brings up `devops-ai-db` and `devops-ai-app` as healthy, with `ingest` `Exited (0)`.
 - `curl http://127.0.0.1:8081/health` gives 200 with the chunk count, and 503 with `"database": "down"` after `docker stop devops-ai-db`.
-- `docker compose exec app python -m pytest tests -q -p no:cacheprovider` gives `51 passed`.
+- `docker compose exec app python -m pytest tests -q -p no:cacheprovider` gives `52 passed`.
 - A question in http://127.0.0.1:8081/ui gets a cited answer.
+- Open: a real cited answer through the container (`/chat/stream` or /ui). On 2026-11-02 the OpenRouter free tier was exhausted (429), so run Task 4 Step 8's curl once when the quota resets.

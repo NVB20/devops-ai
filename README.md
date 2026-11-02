@@ -133,7 +133,7 @@ docker compose up -d --build   # database, then ingest (loads the runbooks, then
 docker compose ps -a           # devops-ai-db and devops-ai-app healthy, ingest Exited (0)
 ```
 
-The chat is at http://127.0.0.1:8081/ui (8081, so `uvicorn` on 8000 still works for the other steps). The image is built from `06-Deploy/Dockerfile`, with the repo root as the build context because it needs `knowledge-base/` too. `.dockerignore` sends it only the app, its tests and the runbooks. The embedding model is downloaded when the image is built. In Docker, Whisper runs on the CPU and downloads its model (~480 MB) on the first voice message.
+The chat is at http://127.0.0.1:8081/ui (8081, so `uvicorn` on 8000 still works for the other steps). The image is built from `06-Deploy/Dockerfile`, with the repo root as the build context because it needs `knowledge-base/` too. `.dockerignore` sends it only the app, its tests and the runbooks. The embedding model is downloaded when the image is built. In Docker, Whisper runs on the CPU and downloads its models on the first voice message (~480 MB for `small`, plus `base` for the live preview).
 
 **`/health`** runs `SELECT count(*) FROM chunks`:
 
@@ -154,6 +154,7 @@ docker compose exec app python -m pytest tests -p no:cacheprovider   # inside th
 
 - `test_stream.py`: the agent loop and `/chat/stream`, with a fake LLM and database (from step 05).
 - `test_health.py`: `/health` up, and down (a real connection attempt to a host that can't exist).
+- `test_ingest.py`: ingest exits with an error, before touching the database, when it finds no runbooks (so compose doesn't start the app with an empty knowledge base).
 - `test_retrieval.py`: 30 known questions, one per runbook, worded the way an engineer asks. Each must find its runbook as the **first** search result, through the real embedding model and database, with no LLM. It also checks that every runbook has a question, that "pods are pending and a node is NotReady" finds both runbooks, and that off-topic questions find nothing. Skipped when Postgres isn't reachable.
 
 ## Run a step (PowerShell)

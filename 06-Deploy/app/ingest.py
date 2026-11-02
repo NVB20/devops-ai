@@ -88,6 +88,9 @@ def chunk_markdown(md: str) -> list[str]:
 
 def main():
     files = sorted(KB_DIR.glob("*.md"))
+    if not files:
+        # Exit non-zero before touching the table: compose then won't start the app, and the old chunks stay
+        raise SystemExit(f"No runbooks (*.md) found in {KB_DIR}")
     rows = [(f.name, text) for f in files for text in chunk_markdown(f.read_text(encoding="utf-8"))]
     print(f"{len(files)} files -> {len(rows)} chunks")
 

@@ -152,8 +152,8 @@ def nearest_chunks(vector, k: int = TOP_K) -> list[dict]:
 
 def chunk_count() -> int:
     """How many runbook chunks are loaded. Raises psycopg.Error when Postgres is down or ingest never ran."""
-    # A short timeout: a health check that hangs is worse than one that says "down"
-    with psycopg.connect(DATABASE_URL, connect_timeout=3) as conn:
+    # Short timeouts on the connect and the query: a health check that hangs is worse than one that says "down"
+    with psycopg.connect(DATABASE_URL, connect_timeout=3, options="-c statement_timeout=3000") as conn:
         return conn.execute("SELECT count(*) FROM chunks").fetchone()[0]
 
 

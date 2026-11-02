@@ -1,5 +1,5 @@
 """Known questions must find the right runbook. Uses the real embedding model and the real database, with no LLM.
-Needs Postgres with the runbooks loaded (docker compose up -d); skipped when Postgres isn't reachable."""
+Needs Postgres with the runbooks loaded (docker compose up -d db); skipped when Postgres isn't reachable."""
 import psycopg
 import pytest
 from fastapi.testclient import TestClient
@@ -47,8 +47,8 @@ def database():
     try:
         count = main.chunk_count()
     except psycopg.Error as e:
-        pytest.skip(f"Postgres not reachable, start it with docker compose up -d: {e}")
-    assert count, "the chunks table is empty: run python -m app.ingest"
+        pytest.skip(f"Postgres not reachable, start it with docker compose up -d db: {e}")
+    assert count, "the chunks table is empty: run python -m app.ingest (or docker compose run --rm ingest)"
 
 
 @pytest.mark.parametrize("question, runbook", KNOWN)
