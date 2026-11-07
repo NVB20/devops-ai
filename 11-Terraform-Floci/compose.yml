@@ -1,0 +1,39 @@
+# Floci: a local AWS emulator, so the Terraform of step 11 runs without an AWS account.
+# Run from the repo root:  docker compose -f 11-Terraform-Floci/compose.yml up -d
+# Its own compose project (floci), separate from the chatbot stack of steps 06-09.
+name: floci
+
+services:
+  floci:
+    image: floci/floci:latest
+    container_name: floci
+    ports:
+      - "127.0.0.1:4566:4566"            # the AWS API (every service) and the ECR registry
+      - "127.0.0.1:7001-7099:7001-7099"  # RDS: Floci proxies each database on a port of this range
+    volumes:
+      # RDS, EKS and ECR are real containers that Floci starts through the Docker socket
+      - /var/run/docker.sock:/var/run/docker.sock
+      - floci-data:/app/data
+    environment:
+      FLOCI_HOSTNAME: floci
+      FLOCI_STORAGE_MODE: persistent           # resources survive a restart of Floci
+      FLOCI_STORAGE_PERSISTENT_PATH: /app/data
+      # The containers Floci starts (RDS, k3s for EKS, the ECR registry) join this network,
+      # so the cluster's pods can reach the database and pull from ECR
+      FLOCI_SERVICES_DOCKER_NETWORK: floci
+      # The app needs pgvector, which the default postgres:16-alpine image doesn't have.
+      # Keep a "pg17" tag: Floci picks the data folder from the tag, and "pg18" would get the wrong one.
+      FLOCI_SERVICES_RDS_DEFAULT_POSTGRES_IMAGE: pgvector/pgvector:pg17
+      # localhost:4566/<account>/<region>/<repo> instead of <account>.dkr.ecr.<region>.localhost:4566/<repo>:
+      # Docker Desktop's containerd image store only pushes to plain "localhost" over HTTP
+      FLOCI_SERVICES_ECR_URI_STYLE: path
+    networks:
+      - floci
+    restart: unless-stopped
+
+networks:
+  floci:
+    name: floci
+
+volumes:
+  floci-data:
