@@ -7,10 +7,10 @@
 {{- end -}}
 {{- end -}}
 
+{{/* Common labels. app.kubernetes.io/name and /instance come from selectorLabels, on the resources that have one */}}
 {{- define "devops-ai.labels" -}}
 helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version }}
 app.kubernetes.io/part-of: devops-ai
-app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end -}}
