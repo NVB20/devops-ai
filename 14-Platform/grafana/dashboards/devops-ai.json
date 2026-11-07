@@ -770,7 +770,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "passed: supported as written \u00b7 revised: fixed by the one rewrite \u00b7 flagged: still unsupported after it \u00b7 unchecked: the reviewer's reply wasn't readable",
+      "description": "passed: supported as written · revised: fixed by the one rewrite · flagged: still unsupported after it · unchecked: the reviewer's reply wasn't readable",
       "gridPos": {
         "x": 0,
         "y": 37,
@@ -1333,6 +1333,156 @@
         },
         "tooltip": {
           "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 27,
+      "type": "row",
+      "title": "Runbook coverage",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 58,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 28,
+      "title": "Unanswered questions (%) over time",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Share of troubleshooting/knowledge questions with no matching runbook. Add runbooks for the gaps and watch it go down. Use a long time range (7d+); Prometheus keeps 15 days.",
+      "gridPos": {
+        "x": 0,
+        "y": 59,
+        "w": 18,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(increase(devops_ai_questions_total{outcome=\"no_answer\"}[1d])) / sum(increase(devops_ai_questions_total{outcome=~\"answered|no_answer\"}[1d]))",
+          "legendFormat": "last 24h"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(increase(devops_ai_questions_total{outcome=\"no_answer\"}[7d])) / sum(increase(devops_ai_questions_total{outcome=~\"answered|no_answer\"}[7d]))",
+          "legendFormat": "last 7 days"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.2
+              },
+              {
+                "color": "red",
+                "value": 0.4
+              }
+            ]
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "spanNulls": true,
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 29,
+      "title": "Unanswered (7d)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Questions with no matching runbook over the last 7 days. Goal: green (under 20%).",
+      "gridPos": {
+        "x": 18,
+        "y": 59,
+        "w": 6,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(increase(devops_ai_questions_total{outcome=\"no_answer\"}[7d])) / sum(increase(devops_ai_questions_total{outcome=~\"answered|no_answer\"}[7d]))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.2
+              },
+              {
+                "color": "red",
+                "value": 0.4
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
         }
       }
     }

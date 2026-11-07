@@ -204,10 +204,37 @@ def outcome(result: dict) -> str:
     return "answered" if result.get("sources") else "no_answer"
 
 
-def record_question(endpoint: str, result: dict, started: float, failed: bool = False):
+def record_question(endpoint: str, result: dict, started: float, failed: bool = False, question: str = ""):
     route = result.get("route") or "unknown"
-    QUESTIONS.labels(endpoint, route, "error" if failed else outcome(result)).inc()
+    what = "error" if failed else outcome(result)
+    QUESTIONS.labels(endpoint, route, what).inc()
     QUESTION_SECONDS.labels(endpoint, route).observe(time.perf_counter() - started)
+    # Metrics only count gaps; the text goes to Postgres so /gaps can say which runbooks to write
+    if what == "no_answer" and question.strip():
+        try:
+            save_unanswered(question, route)
+        except psycopg.Error as e:
+            print(f"Could not save the unanswered question: {e}", flush=True)  # never fail the answer for it
+
+
+def save_unanswered(question: str, route: str):
+    with psycopg.connect(DATABASE_URL, connect_timeout=3) as conn:
+        conn.execute("INSERT INTO unanswered_questions (question, route) VALUES (%s, %s)",
+                     (question.strip()[:2000], route))
+
+
+def unanswered_gaps(limit: int) -> list[dict]:
+    """The same question asked again counts once more, not as a new line (case and spaces ignored)."""
+    with psycopg.connect(DATABASE_URL, connect_timeout=3, options="-c statement_timeout=5000") as conn:
+        rows = conn.execute(
+            """SELECT min(question), count(*), max(asked_at), min(route)
+               FROM unanswered_questions
+               GROUP BY lower(btrim(question))
+               ORDER BY count(*) DESC, max(asked_at) DESC
+               LIMIT %s""",
+            (limit,),
+        ).fetchall()
+    return [{"question": q, "times": n, "last_asked": last.isoformat(), "route": r} for q, n, last, r in rows]
 
 
 @app.middleware("http")
@@ -589,6 +616,15 @@ def search_endpoint(q: str):
     return search(q)
 
 
+@app.get("/gaps")
+def gaps(limit: int = 50):
+    """Questions no runbook answered, most asked first: the runbooks to write next."""
+    try:
+        return unanswered_gaps(max(1, min(limit, 500)))
+    except psycopg.Error as e:
+        raise HTTPException(status_code=503, detail=f"Knowledge base unavailable: {e}")
+
+
 @app.get("/graph", include_in_schema=False)
 def graph_diagram():
     """The graph as a Mermaid diagram; paste it into https://mermaid.live to see it."""
@@ -606,7 +642,7 @@ def chat(request: ChatRequest):
     except Exception as e:
         record_question("chat", {}, started, failed=True)
         raise HTTPException(status_code=502, detail=str(e))
-    record_question("chat", result, started)
+    record_question("chat", result, started, question=request.message)
 
     return {
         "user": request.message,
@@ -675,7 +711,7 @@ def chat_stream(request: ChatRequest):
             yield sse({"type": "error", "node": node, "detail": str(e)})
             return
 
-        record_question("stream", state, started)
+        record_question("stream", state, started, question=request.message)
 
         yield sse({
             "type": "done",

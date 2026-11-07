@@ -29,6 +29,13 @@ CREATE TABLE IF NOT EXISTS chunks (
     embedding vector(384) NOT NULL
 );
 CREATE INDEX IF NOT EXISTS chunks_embedding_idx ON chunks USING hnsw (embedding vector_cosine_ops);
+-- Questions no runbook matched (GET /gaps). Never truncated: it's the list of runbooks to write.
+CREATE TABLE IF NOT EXISTS unanswered_questions (
+    id       bigserial PRIMARY KEY,
+    question text NOT NULL,
+    route    text,
+    asked_at timestamptz NOT NULL DEFAULT now()
+);
 """
 
 

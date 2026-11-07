@@ -71,7 +71,7 @@ flowchart LR
 | 06 | [06-Deploy](./06-Deploy) | Retrieval tests, DB-aware `/health`, fully containerized | ✅ |
 | 07 | [07-n8n-Ollama](./07-n8n-Ollama) | Local LLM (Ollama) as an alternative to OpenRouter, n8n chat workflow | ✅ |
 | 08 | [08-CICD](./08-CICD) | GitHub Actions: tests on real pgvector, config checks, image to GHCR | 🚧 |
-| 09 | [09-Monitoring](./09-Monitoring) | `/metrics`, Prometheus alert rules, Grafana dashboard | 🚧 |
+| 09 | [09-Monitoring](./09-Monitoring) | `/metrics`, Prometheus alert rules, Grafana dashboard | ✅ |
 | 10 | [10-Kubernetes](./10-Kubernetes) | Postgres, ingest Job and chatbot on a local kind cluster | 🚧 |
 | 11 | [11-Terraform-Floci](./11-Terraform-Floci) | Terraform builds VPC, S3, ECR, RDS (pgvector) and EKS on Floci (local AWS) | ✅ |
 | 12 | [12-Helm](./12-Helm) | One Helm chart with values for kind and Floci's EKS | ✅ |
@@ -606,6 +606,8 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:9093/api/v2/alerts -Content
 ```
 
 About 10 seconds later (Alertmanager's `group_wait`) the chatbot's answer from `kubernetes-crashloopbackoff.md` is in Discord, and the run is in n8n under Executions. Without `DISCORD_WEBHOOK_URL`, the run stops at "Discord configured?".
+
+**Runbook gaps.** Each question no runbook answers is saved in Postgres (`unanswered_questions`, created by ingest and never emptied). `GET /gaps` lists them, most asked first: those are the runbooks to write next. Grafana's "Runbook coverage" row shows the % unanswered over time (24h and 7 days), so you see it drop as runbooks are added. "Clarify" and off-topic questions don't count. Saving never blocks an answer: if Postgres refuses, it's only logged.
 
 **Fallback channel.** Alertmanager also posts every alert straight to a second Discord channel (raw alert, no AI, and "resolved" when it's fixed), so alerts still arrive when n8n is down. Add `DISCORD_FALLBACK_WEBHOOK_URL` to `.env`. Alertmanager can't read env vars in its config, so its entrypoint writes the URL to a file the config reads (`webhook_url_file`).
 
