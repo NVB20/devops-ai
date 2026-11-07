@@ -14,3 +14,6 @@ crash.log
 # Local media, not part of the repo
 video/
 Project AI - Knowledge Base.pdf
+
+# Local services and credentials list (real secrets)
+SERVICES.md

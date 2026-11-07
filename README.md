@@ -605,6 +605,14 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:9093/api/v2/alerts -Content
 
 About 10 seconds later (Alertmanager's `group_wait`) the chatbot's answer from `kubernetes-crashloopbackoff.md` is in Discord, and the run is in n8n under Executions. Without `DISCORD_WEBHOOK_URL`, the run stops at "Discord configured?".
 
+**Daily health report.** `14-Platform/n8n/devops-ai-daily-report.json` runs every day at 09:00 (Asia/Jerusalem). It reads the app's `/health` and Prometheus' firing alerts and posts ✅ "all systems OK" or ❌ with what's wrong to Discord. If the message doesn't come one morning, n8n itself is down. It's imported and published on n8n start; "Run now" in the editor runs it at once.
+
+**n8n Assistant (optional).** n8n's built-in Assistant asks for a model and a code sandbox.
+- Model: "Self-hosted or OpenAI-compatible endpoint", base URL `http://host.docker.internal:11434/v1`, API key `ollama`, a model you pulled (e.g. `qwen2.5:14b`).
+- Sandbox: the compose file runs n8n's sandbox (`sandbox-certs`, `sandbox-api`, `sandbox-runner-1`, version `N8N_SANDBOX_VERSION`, default 1.14.0). Choose "n8n Sandbox", Service URL `http://sandbox-api:8080`, API key = `SANDBOX_API_KEYS` from `.env`.
+- Add these random values to `.env` first: `SANDBOX_API_KEYS`, `SANDBOX_RUNNER_REGISTRATION_TOKEN`, `SANDBOX_RUNNER_API_KEYS`. The runner is privileged (Docker-in-Docker); no sandbox port is published.
+- Watch out for the browser filling your n8n login into these forms.
+
 The step 14 image is also what CI publishes and ArgoCD deploys (the chart's `appVersion` is 14).
 
 Tests: `test_review.py` (passes, one rewrite, flagged after the rewrite, nothing to review, an unreadable verdict, the stream events), and the step 09 tests updated for the review step.

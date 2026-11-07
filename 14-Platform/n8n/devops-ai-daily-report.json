@@ -1,0 +1,160 @@
+{
+  "id": "devopsAiDaily001",
+  "name": "DevOps AI daily health report",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "d1000000-0000-4000-8000-000000000001",
+      "name": "Every day at 09:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0],
+      "notes": "Uses GENERIC_TIMEZONE (Asia/Jerusalem)."
+    },
+    {
+      "parameters": {},
+      "id": "d1000000-0000-4000-8000-000000000009",
+      "name": "Run now",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 200],
+      "notes": "To test it from the editor (or n8n execute) without waiting for 09:00."
+    },
+    {
+      "parameters": {
+        "url": "http://app:8000/health",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "id": "d1000000-0000-4000-8000-000000000002",
+      "name": "App health",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 0],
+      "onError": "continueRegularOutput",
+      "notes": "Full response so a 503 still gives its body. If the app doesn't answer at all, the error goes on to the report."
+    },
+    {
+      "parameters": {
+        "url": "http://prometheus:9090/api/v1/alerts",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "d1000000-0000-4000-8000-000000000003",
+      "name": "Firing alerts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0],
+      "onError": "continueRegularOutput",
+      "notes": "Prometheus' own list. If Prometheus is down, the report says so."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d1000000-0000-4000-8000-000000000004",
+              "name": "content",
+              "type": "string",
+              "value": "={{ (() => { const h = $('App health').item.json; const p = $json; const lines = []; let ok = true; if (h.statusCode === 200 && h.body && h.body.status === 'healthy') { lines.push('App: healthy, database up, ' + h.body.chunks + ' runbook chunks, LLM ' + h.body.llm.provider + ' / ' + h.body.llm.model); } else if (h.statusCode) { ok = false; lines.push('App: ' + ((h.body && h.body.status) || 'HTTP ' + h.statusCode) + ', database ' + ((h.body && h.body.database) || 'unknown')); } else { ok = false; lines.push('App: not answering (' + ((h.error && h.error.message) || 'no reply') + ')'); } if (p.data && p.data.alerts) { const firing = p.data.alerts.filter(a => a.state === 'firing'); if (firing.length) { ok = false; lines.push('Firing alerts: ' + firing.map(a => a.labels.alertname).join(', ')); } else { lines.push('Firing alerts: none'); } } else { ok = false; lines.push('Prometheus: not answering (' + ((p.error && p.error.message) || 'no reply') + ')'); } return (ok ? '✅ **DevOps AI daily report: all systems OK**' : '❌ **DevOps AI daily report: something is wrong**') + '\\n' + lines.map(l => '• ' + l).join('\\n'); })() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d1000000-0000-4000-8000-000000000005",
+      "name": "Report message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d1000000-0000-4000-8000-000000000006",
+              "leftValue": "={{ $env.DISCORD_WEBHOOK_URL }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d1000000-0000-4000-8000-000000000007",
+      "name": "Discord configured?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [880, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.DISCORD_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ content: $json.content }) }}",
+        "options": {}
+      },
+      "id": "d1000000-0000-4000-8000-000000000008",
+      "name": "Post to Discord",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, -100]
+    }
+  ],
+  "connections": {
+    "Every day at 09:00": {
+      "main": [[{ "node": "App health", "type": "main", "index": 0 }]]
+    },
+    "Run now": {
+      "main": [[{ "node": "App health", "type": "main", "index": 0 }]]
+    },
+    "App health": {
+      "main": [[{ "node": "Firing alerts", "type": "main", "index": 0 }]]
+    },
+    "Firing alerts": {
+      "main": [[{ "node": "Report message", "type": "main", "index": 0 }]]
+    },
+    "Report message": {
+      "main": [[{ "node": "Discord configured?", "type": "main", "index": 0 }]]
+    },
+    "Discord configured?": {
+      "main": [[{ "node": "Post to Discord", "type": "main", "index": 0 }], []]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "active": false
+}

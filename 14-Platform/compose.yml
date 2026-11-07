@@ -26,17 +26,92 @@ services:
       # The alert workflow reads the Discord URL with $env, which n8n blocks by default
       N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
-    # Import both workflows (same ids, so updated, not duplicated), publish the alert one so its webhook
-    # answers, then start n8n
+    # Import every workflow (same ids, so updated, not duplicated), publish the alert one (its webhook must
+    # answer) and the daily report (its schedule must run), then start n8n
     entrypoint:
       - /bin/sh
       - -c
       - >-
         n8n import:workflow --separate --input=/workflows &&
         (n8n publish:workflow --id=devopsAiAlerts01 || echo 'Could not publish the alert workflow: publish it in the editor') &&
+        (n8n publish:workflow --id=devopsAiDaily001 || echo 'Could not publish the daily report: publish it in the editor') &&
         exec n8n start
     volumes:
       - ./14-Platform/n8n:/workflows:ro
+
+  # Code sandbox for the n8n Assistant (from n8n's get-n8n-compose.yml). In the Assistant setup:
+  # Service URL http://sandbox-api:8080, API key = SANDBOX_API_KEYS from .env.
+  # The three images ship as one release, so one N8N_SANDBOX_VERSION pins them all. No ports published.
+  sandbox-certs:
+    image: ghcr.io/n8n-io/n8n-sandbox-service-api:${N8N_SANDBOX_VERSION:-1.14.0}
+    user: "0:0"
+    entrypoint: ["sh", "-c"]
+    command:
+      - >
+        bootstrap-mtls.sh --out-dir /tls --api-san sandbox-api
+        --control-san-prefix sandbox-runner --world-readable &&
+        chown -R sandbox-api:sandbox-api /tls/api && chmod -R a+rX /tls
+    environment:
+      NUM_RUNNERS: "1"
+    volumes:
+      - sandbox-tls:/tls
+
+  sandbox-api:
+    image: ghcr.io/n8n-io/n8n-sandbox-service-api:${N8N_SANDBOX_VERSION:-1.14.0}
+    container_name: devops-ai-sandbox-api
+    depends_on:
+      sandbox-certs:
+        condition: service_completed_successfully
+    # Only the sandbox keys, not the whole .env (it holds the LLM key and DB password).
+    # The API reads the runner secrets under SANDBOX_API_RUNNER_*; the runner reads the same values as SANDBOX_RUNNER_*.
+    environment:
+      SANDBOX_API_KEYS: ${SANDBOX_API_KEYS:?set SANDBOX_API_KEYS in .env}
+      SANDBOX_API_RUNNER_REGISTRATION_TOKEN: ${SANDBOX_RUNNER_REGISTRATION_TOKEN:?set it in .env}
+      SANDBOX_API_RUNNER_API_KEY: ${SANDBOX_RUNNER_API_KEYS:?set it in .env}  # singular: the one key it sends to the runner
+      SANDBOX_API_GRPC_TLS_CERT_FILE: /tls/api/grpc-server.crt
+      SANDBOX_API_GRPC_TLS_KEY_FILE: /tls/api/grpc-server.key
+      SANDBOX_API_GRPC_TLS_CLIENT_CA_FILE: /tls/api/ca.crt
+      SANDBOX_API_RUNNER_CONTROL_GRPC_TLS_CA_FILE: /tls/api/ca.crt
+      SANDBOX_API_RUNNER_CONTROL_GRPC_TLS_CERT_FILE: /tls/api/control-grpc-api-client.crt
+      SANDBOX_API_RUNNER_CONTROL_GRPC_TLS_KEY_FILE: /tls/api/control-grpc-api-client.key
+      SANDBOX_API_RUNNER_CONTROL_GRPC_TLS_SERVER_NAME: sandbox-runner-1
+    volumes:
+      - sandbox-tls:/tls:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  sandbox-runner-1:
+    image: ghcr.io/n8n-io/n8n-sandbox-service-runner-dind:${N8N_SANDBOX_VERSION:-1.14.0}
+    container_name: devops-ai-sandbox-runner
+    privileged: true  # Docker-in-Docker: each code run gets its own throwaway container
+    depends_on:
+      sandbox-api:
+        condition: service_healthy
+    environment:
+      SANDBOX_API_KEYS: ${SANDBOX_API_KEYS:?set SANDBOX_API_KEYS in .env}
+      SANDBOX_RUNNER_REGISTRATION_TOKEN: ${SANDBOX_RUNNER_REGISTRATION_TOKEN:?set it in .env}
+      SANDBOX_RUNNER_API_KEYS: ${SANDBOX_RUNNER_API_KEYS:?set it in .env}
+      SANDBOX_RUNNER_API_GRPC_ADDR: sandbox-api:9090
+      SANDBOX_RUNNER_HTTP_BASE_URL: https://sandbox-runner-1:8080
+      SANDBOX_RUNNER_CONTROL_GRPC_LISTEN_ADDR: ":9091"
+      SANDBOX_RUNNER_CONTROL_GRPC_ADVERTISE_ADDR: sandbox-runner-1:9091
+      SANDBOX_RUNNER_ID: runner-1
+      SANDBOX_RUNNER_DOCKER_SANDBOX_IMAGE: ghcr.io/n8n-io/n8n-sandbox-service-sandbox:${N8N_SANDBOX_VERSION:-1.14.0}
+      SANDBOX_RUNNER_REGISTRATION_GRPC_CA_FILE: /tls/runner/ca.crt
+      SANDBOX_RUNNER_REGISTRATION_GRPC_CERT_FILE: /tls/runner/grpc-client.crt
+      SANDBOX_RUNNER_REGISTRATION_GRPC_KEY_FILE: /tls/runner/grpc-client.key
+      SANDBOX_RUNNER_REGISTRATION_GRPC_SERVER_NAME: sandbox-api
+      SANDBOX_RUNNER_CONTROL_GRPC_TLS_CERT_FILE: /tls/runner/control-grpc-server.crt
+      SANDBOX_RUNNER_CONTROL_GRPC_TLS_KEY_FILE: /tls/runner/control-grpc-server.key
+      SANDBOX_RUNNER_CONTROL_GRPC_TLS_CLIENT_CA_FILE: /tls/runner/ca.crt
+    volumes:
+      - sandbox-tls:/tls:ro
+    restart: unless-stopped
 
   alertmanager:
     image: prom/alertmanager:latest
@@ -71,3 +146,6 @@ services:
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/devops-ai.json
     volumes:
       - ./14-Platform/grafana/dashboards:/var/lib/grafana/dashboards:ro
+
+volumes:
+  sandbox-tls:  # certificates the sandbox API and runner use to trust each other
