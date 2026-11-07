@@ -1,0 +1,14 @@
+# What ArgoCD deploys on top of 12-Helm/values-kind.yaml: the image CI built and pushed to GHCR.
+# CI rewrites the tag below on every push to main (job "gitops" in .github/workflows/ci.yml).
+image:
+  repository: ghcr.io/nvb20/devops-ai-app
+  tag: "sha-88e78d8"
+  pullPolicy: IfNotPresent
+
+# The OpenRouter key never goes through Git: create this Secret by hand (see the README, step 13)
+llm:
+  existingSecret: openrouter
+
+# GHCR packages start private. Either make devops-ai-app public on GitHub, or create a docker-registry
+# Secret named ghcr in the devops-ai namespace and uncomment this.
+# imagePullSecrets: [ghcr]

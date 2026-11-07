@@ -1,0 +1,73 @@
+# Step 14 on top of steps 06, 07 and 09: the full platform.
+#   - the step 14 app (answers reviewed against the runbooks)
+#   - Alertmanager, which sends firing alerts to n8n
+#   - n8n: the chat workflow, and an alert workflow that asks the chatbot and posts its fix to Discord
+#   - Postgres and n8n metrics in Prometheus, and a bigger Grafana dashboard
+# Run from the repo root (add DISCORD_WEBHOOK_URL to .env to get the Discord messages):
+#   docker compose -f docker-compose.yml -f 07-n8n-Ollama/compose.yml -f 09-Monitoring/compose.yml -f 14-Platform/compose.yml up -d --build
+# Relative paths below are relative to the repo root (the first file's folder), not to this file.
+
+x-step14: &step14
+  build:
+    context: .
+    dockerfile: 14-Platform/Dockerfile
+  image: devops-ai-app:14
+
+services:
+  ingest:
+    <<: *step14
+
+  app:
+    <<: *step14
+
+  n8n:
+    environment:
+      N8N_METRICS: "true"  # /metrics on 5678, scraped by Prometheus
+      # The alert workflow reads the Discord URL with $env, which n8n blocks by default
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+    # Import both workflows (same ids, so updated, not duplicated), publish the alert one so its webhook
+    # answers, then start n8n
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >-
+        n8n import:workflow --separate --input=/workflows &&
+        (n8n publish:workflow --id=devopsAiAlerts01 || echo 'Could not publish the alert workflow: publish it in the editor') &&
+        exec n8n start
+    volumes:
+      - ./14-Platform/n8n:/workflows:ro
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: devops-ai-alertmanager
+    command: ["--config.file=/etc/alertmanager/alertmanager.yml"]
+    ports:
+      - "127.0.0.1:9093:9093"
+    volumes:
+      - ./14-Platform/alertmanager:/etc/alertmanager:ro
+    depends_on:
+      - n8n
+    restart: unless-stopped
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: devops-ai-postgres-exporter
+    environment:
+      DATA_SOURCE_URI: db:5432/${POSTGRES_DB:-knowledge}?sslmode=disable
+      DATA_SOURCE_USER: ${POSTGRES_USER:-devops}
+      DATA_SOURCE_PASS: ${POSTGRES_PASSWORD:-devops}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  prometheus:
+    volumes:
+      - ./14-Platform/prometheus:/etc/prometheus:ro
+
+  grafana:
+    environment:
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/devops-ai.json
+    volumes:
+      - ./14-Platform/grafana/dashboards:/var/lib/grafana/dashboards:ro

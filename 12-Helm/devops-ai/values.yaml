@@ -2,8 +2,11 @@
 
 image:
   repository: devops-ai-app
-  tag: ""  # empty: the chart's appVersion ("09")
+  tag: ""  # empty: the chart's appVersion ("14")
   pullPolicy: IfNotPresent
+
+# For a private registry, e.g. a GHCR package that isn't public: names of docker-registry Secrets
+imagePullSecrets: []
 
 replicaCount: 1
 
