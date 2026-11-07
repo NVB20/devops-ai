@@ -1,0 +1,21 @@
+# The one Application you apply by hand ("app of apps"). It deploys every Application in 13-ArgoCD/apps,
+# so adding an app later is a commit, not a kubectl command.
+#   kubectl apply -n argocd -f 13-ArgoCD/root.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/NVB20/devops-ai.git
+    targetRevision: main
+    path: 13-ArgoCD/apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true     # an app removed from apps/ is removed from the cluster
+      selfHeal: true  # a change made by hand in the cluster is put back to what Git says

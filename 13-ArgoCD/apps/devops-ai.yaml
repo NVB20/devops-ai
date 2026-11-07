@@ -1,0 +1,35 @@
+# The chatbot: the step 12 chart, with the kind values and the image CI last pushed to GHCR.
+# CI (step 08) writes that image's tag into 13-ArgoCD/values-argocd.yaml on every push to main,
+# and ArgoCD rolls it out: Git is the only way a new version reaches the cluster.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: devops-ai
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/NVB20/devops-ai.git
+    targetRevision: main
+    path: 12-Helm/devops-ai
+    helm:
+      releaseName: devops-ai
+      # Relative to the chart; both files are in this repo. The later file wins.
+      valueFiles:
+        - ../values-kind.yaml
+        - ../../13-ArgoCD/values-argocd.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: devops-ai
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:  # the first sync can race the database starting
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m

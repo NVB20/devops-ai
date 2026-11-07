@@ -4,16 +4,18 @@ The workflow is [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) (GitHu
 
 ```
              ┌─ test (06-Deploy) ─────┐
-pull request ┼─ test (07-n8n-Ollama) ─┼─► image: build 09-Monitoring/Dockerfile ─► push to GHCR (main only)
-or push      ├─ test (09-Monitoring) ─┤
-             └─ configs ──────────────┘
+pull request ├─ test (07-n8n-Ollama) ─┤
+or push      ├─ test (09-Monitoring) ─┼─► image: build 14-Platform/Dockerfile ─► push to GHCR ─► gitops: tag into
+             ├─ test (14-Platform) ───┤                                        (main only)       13-ArgoCD/values-argocd.yaml
+             └─ configs ──────────────┘                                                          (main only)
 ```
 
 | Job | What it checks |
 |---|---|
 | `test` (one per step) | A real Postgres + pgvector as a service container, a real ingest of `knowledge-base/`, then `pytest tests`. So `test_retrieval.py` runs for real here (it's skipped on a machine without Postgres): every runbook must be the first search result for its question. The LLM is faked in the tests, so no OpenRouter key or quota is used. |
-| `configs` | The compose files of steps 06, 07, 09 and 11 (`docker compose config`), the Prometheus config and alert rules (`promtool check config`), the step 10 Kubernetes manifests against the Kubernetes schema (`kubeconform -strict`), the step 12 Helm chart (lint, rendered for kind and Floci, schema-checked, and its behaviour checked), and the Terraform of steps 11 and 12 (`terraform fmt -check` and `terraform validate`, no Floci needed). |
+| `configs` | The compose files of steps 06, 07, 09, 11 and 14 (`docker compose config`), the Prometheus configs and alert rules of steps 09 and 14 (`promtool check config`), the Alertmanager config (`amtool check-config`), the n8n workflows (valid JSON), the step 10 manifests and the step 13 ArgoCD Applications against their schemas (`kubeconform -strict`), the step 12 Helm chart (lint, rendered for kind, Floci and ArgoCD, schema-checked, and its behaviour checked), and the Terraform of steps 11 and 12. |
 | `image` | Builds the latest step's image (`APP_STEP` in the workflow). Pull requests only build it. On `main` it's pushed to `ghcr.io/nvb20/devops-ai-app` as `latest` and `sha-<commit>`. Runs only when `test` and `configs` pass. |
+| `gitops` | Step 13, `main` only: commits the new `sha-<commit>` tag into `13-ArgoCD/values-argocd.yaml` (`[skip ci]`), and ArgoCD rolls it out. A push with `GITHUB_TOKEN` starts no workflow, so it doesn't loop. |
 
 **Secrets:** none to add. The push uses the built-in `GITHUB_TOKEN` (the job has `packages: write`). The tests use a dummy OpenRouter key, since they fake the LLM.
 

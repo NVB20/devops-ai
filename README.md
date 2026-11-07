@@ -18,7 +18,8 @@ My work on the [DevOps Mentor–Mentee project](https://github.com/yehudasho/din
 
 | 12 | [12-Helm](./12-Helm) – one Helm chart for the chatbot, with values for kind (Postgres in the cluster) and for Floci's EKS (RDS, ECR), installed by Terraform there | 🚧 first run pending |
 
-Next, following the project plan: ArgoCD (13), the full platform (14).
+| 13 | [13-ArgoCD](./13-ArgoCD) – ArgoCD on kind deploys the chart from `main`; CI writes each new image tag into Git; Prometheus in the cluster | 🚧 first run pending |
+| 14 | [14-Platform](./14-Platform) – answers reviewed against the runbooks (one rewrite), alerts → n8n → the chatbot → Discord, Postgres and n8n metrics | 🚧 first run pending |
 
 ## Setup (once)
 
@@ -329,9 +330,11 @@ Steps 10 and 11 describe the same app twice: plain YAML for kind, Terraform reso
 
 The chart renders: the app Deployment and Service, a ConfigMap (LLM settings), a Secret for `DATABASE_URL` and one for the OpenRouter key, the ingest Job, and with `postgres.enabled` a pgvector StatefulSet with its volume.
 
-**On kind** (the cluster and image from step 10; if step 10's manifests are still applied, `kubectl delete namespace devops-ai` first):
+**On kind** (the cluster from step 10; if step 10's manifests are still applied, `kubectl delete namespace devops-ai` first). The chart deploys the step 14 image by default (`appVersion`):
 
 ```powershell
+docker build -f 14-Platform/Dockerfile -t devops-ai-app:14 .
+kind load docker-image devops-ai-app:14 --name devops-ai
 helm upgrade --install devops-ai 12-Helm/devops-ai -n devops-ai --create-namespace `
   -f 12-Helm/values-kind.yaml --set-string llm.openrouterApiKey=<your key> `
   --wait --wait-for-jobs --timeout 10m
@@ -364,6 +367,102 @@ How it behaves:
 - **Secrets stay out of Git:** pass the key with `--set-string` (or `TF_VAR_openrouter_api_key`), or point `llm.existingSecret` / `database.existingSecret` at Secrets you created.
 
 CI lints the chart, renders it with both values files, checks the result against the Kubernetes schema, and checks the behaviour above: Postgres only on kind, the ingest Job name stable unless the image changes, and the render-time errors.
+
+### ArgoCD (step 13)
+
+GitOps on the kind cluster: ArgoCD watches `main` and makes the cluster match it. Nobody runs `helm upgrade` any more; a merge does.
+
+```
+merge to main ─► CI: tests ─► image to GHCR (sha-xxxxxxx) ─► CI commits that tag to 13-ArgoCD/values-argocd.yaml
+                                                                              │
+ArgoCD (in the cluster, polls main every ~3 min) ◄────────────────────────────┘ ─► helm-renders the chart ─► applies it
+```
+
+| File | What |
+|---|---|
+| `root.yaml` | The one Application applied by hand ("app of apps"): it deploys everything in `apps/` |
+| `apps/devops-ai.yaml` | The step 12 chart from `main`, with `values-kind.yaml` and `values-argocd.yaml`, auto-sync, prune and self-heal |
+| `apps/prometheus.yaml` | Prometheus in the cluster (community chart, small): scrapes the app pods through their `prometheus.io/scrape` annotation |
+| `values-argocd.yaml` | The GHCR image and its tag (CI rewrites the tag), and the OpenRouter key from a Secret you create |
+
+Once (the kind cluster from step 10):
+
+```powershell
+kubectl create namespace argocd
+kubectl apply -n argocd --server-side -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+kubectl -n argocd rollout status deployment argocd-server
+
+# The key stays out of Git: ArgoCD's Application points at this Secret
+kubectl create namespace devops-ai
+kubectl -n devops-ai create secret generic openrouter --from-literal=OPENROUTER_API_KEY=<your key>
+
+kubectl apply -n argocd -f 13-ArgoCD/root.yaml
+```
+
+The image is pulled from `ghcr.io/nvb20/devops-ai-app`, and GHCR packages start private: on GitHub open the package → Package settings → Change visibility → Public. (Or keep it private: create a `docker-registry` Secret named `ghcr` in `devops-ai` and uncomment `imagePullSecrets` in `values-argocd.yaml`.)
+
+The ArgoCD UI: `kubectl -n argocd port-forward svc/argocd-server 8443:443`, then https://127.0.0.1:8443, user `admin`, password from `kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}"` (base64). The chat is at http://127.0.0.1:8082/ui as in step 12. Prometheus: `kubectl -n monitoring port-forward svc/prometheus-server 9091:80`.
+
+What GitOps gives here:
+
+- **Deploy = merge.** CI's `gitops` job commits `Deploy sha-xxxxxxx with ArgoCD [skip ci]` to `main` after each image push; ArgoCD rolls it out. `git log 13-ArgoCD/values-argocd.yaml` is the deploy history.
+- **Rollback = revert.** `git revert` that commit and ArgoCD goes back to the previous image.
+- **Self-heal.** `kubectl -n devops-ai scale deployment devops-ai --replicas=0` is undone within seconds: Git says 1.
+- **The ingest Job** reruns only when its hash changes (step 12), which is what makes it safe here: ArgoCD renders the chart as revision 1 every time.
+
+CI checks the Applications against ArgoCD's schema and renders the chart the way ArgoCD will.
+
+### The full platform (step 14)
+
+Everything together, plus three things the earlier steps left out.
+
+**1. Answers are reviewed against the runbooks.** After the agent answers, a `review` node asks the LLM to list every command or fact the runbook excerpts don't support. If there are any, a `revise` node gives the agent one rewrite with those notes (no new searches), and the rewrite is reviewed again:
+
+```
+classify ─► troubleshoot / knowledge ─► review ─┬─ supported ────────────────────► answer (passed)
+                                                └─ not ─► revise ─► review ─┬─ supported ─► answer (revised)
+                                                                            └─ not ───────► answer (flagged + the claims)
+```
+
+`/chat` and the stream return `review: {status, issues}`: `passed`, `revised`, `flagged`, `unchecked` (the reviewer's reply wasn't readable: the answer isn't held back) or `skipped` (a clarifying question, or no runbook cited). The chat shows it under each answer, with the unsupported claims when flagged.
+
+**2. Alerts reach Discord with the fix.** Prometheus → Alertmanager → n8n (`DevOps AI alerts to Discord` workflow) → `POST /chat` with the alert → Discord:
+
+```
+🚨 PostgresTooManyConnections (warning): Postgres is using over 80% of its connections
+Likely cause: ... Check: ... Fix: ... [database-connection-errors.md]
+```
+
+If the chatbot can't answer (it may be what's down), the alert still goes out, saying so.
+
+**3. More monitoring.** `postgres-exporter`, n8n's own `/metrics`, and Alertmanager are scraped. New alerts: Postgres down or near its connection limit, n8n down, over 20% of answers flagged. The dashboard has new rows for the review and for Postgres and n8n.
+
+Run it (add `DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...` to `.env` first: Discord channel → Edit Channel → Integrations → Webhooks → New Webhook → Copy URL):
+
+```powershell
+docker compose -f docker-compose.yml -f 07-n8n-Ollama/compose.yml -f 09-Monitoring/compose.yml -f 14-Platform/compose.yml up -d --build
+```
+
+| URL | What |
+|-----|------|
+| http://127.0.0.1:8081/ui | The chat (answers now show their review) |
+| http://127.0.0.1:5678 | n8n: the chat and alert workflows |
+| http://127.0.0.1:9090/alerts | Prometheus alerts |
+| http://127.0.0.1:9093 | Alertmanager |
+| http://127.0.0.1:3000 | Grafana |
+
+Try the alert path without breaking anything, by sending Alertmanager a made-up alert:
+
+```powershell
+$alert = '[{"labels":{"alertname":"PodCrashLooping","severity":"warning"},"annotations":{"summary":"pod payments-api keeps restarting (CrashLoopBackOff)"}}]'
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:9093/api/v2/alerts -ContentType application/json -Body $alert
+```
+
+About 10 seconds later (Alertmanager's `group_wait`) the chatbot's answer from `kubernetes-crashloopbackoff.md` is in Discord, and the run is in n8n under Executions. Without `DISCORD_WEBHOOK_URL`, the run stops at "Discord configured?".
+
+The step 14 image is also what CI publishes and ArgoCD deploys (the chart's `appVersion` is 14).
+
+Tests: `test_review.py` (passes, one rewrite, flagged after the rewrite, nothing to review, an unreadable verdict, the stream events), and the step 09 tests updated for the review step.
 
 ## Run a step (PowerShell)
 

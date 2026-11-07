@@ -1,7 +1,9 @@
 # Step 08: test every pull request and push, and publish the chatbot image to GHCR from main.
+# Step 13: then write the new image's tag into 13-ArgoCD/values-argocd.yaml, which ArgoCD deploys.
 #   test    – the tests of steps 06, 07 and 09 against a real Postgres + pgvector, after a real ingest
 #   configs – compose files, Prometheus config and alert rules, Kubernetes manifests, Helm chart, Terraform (fmt + validate)
 #   image   – builds the latest step's image; on main it's pushed as ghcr.io/<owner>/devops-ai-app:{latest,sha-xxxxxxx}
+#   gitops  – on main, commits that sha-xxxxxxx tag to 13-ArgoCD/values-argocd.yaml (ArgoCD then rolls it out)
 # See 08-CICD/README.md.
 name: CI
 
@@ -21,7 +23,7 @@ permissions:
 
 env:
   # The step whose image is built and deployed (Kubernetes runs it in step 10)
-  APP_STEP: 09-Monitoring
+  APP_STEP: 14-Platform
 
 jobs:
   test:
@@ -30,7 +32,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        step: [06-Deploy, 07-n8n-Ollama, 09-Monitoring]
+        step: [06-Deploy, 07-n8n-Ollama, 09-Monitoring, 14-Platform]
     services:
       db:
         image: pgvector/pgvector:pg17
@@ -88,17 +90,28 @@ jobs:
           docker compose -f docker-compose.yml config --quiet
           docker compose -f docker-compose.yml -f 07-n8n-Ollama/compose.yml config --quiet
           docker compose -f docker-compose.yml -f 07-n8n-Ollama/compose.yml -f 09-Monitoring/compose.yml config --quiet
+          docker compose -f docker-compose.yml -f 07-n8n-Ollama/compose.yml -f 09-Monitoring/compose.yml -f 14-Platform/compose.yml config --quiet
           docker compose -f 11-Terraform-Floci/compose.yml config --quiet
 
-      - name: Prometheus config and alert rules
+      - name: Prometheus and Alertmanager configs, alert rules, n8n workflows
         run: |
-          docker run --rm -v "$PWD/09-Monitoring/prometheus:/etc/prometheus:ro" --entrypoint promtool \
-            prom/prometheus:latest check config /etc/prometheus/prometheus.yml
+          for step in 09-Monitoring 14-Platform; do
+            docker run --rm -v "$PWD/$step/prometheus:/etc/prometheus:ro" --entrypoint promtool \
+              prom/prometheus:latest check config /etc/prometheus/prometheus.yml
+          done
+          docker run --rm -v "$PWD/14-Platform/alertmanager:/etc/alertmanager:ro" --entrypoint amtool \
+            prom/alertmanager:latest check-config /etc/alertmanager/alertmanager.yml
+          for f in 07-n8n-Ollama/n8n/*.json 14-Platform/n8n/*.json; do python3 -m json.tool "$f" > /dev/null; done
 
-      - name: Kubernetes manifests
+      - name: Kubernetes manifests and ArgoCD Applications
         run: |
           docker run --rm -v "$PWD/10-Kubernetes:/k8s:ro" ghcr.io/yannh/kubeconform:latest \
             -strict -summary /k8s/manifests
+          # ArgoCD's Application is a CRD: its schema comes from the community CRD catalog
+          docker run --rm -v "$PWD/13-ArgoCD:/argocd:ro" ghcr.io/yannh/kubeconform:latest -strict -summary \
+            -schema-location default \
+            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+            /argocd/root.yaml /argocd/apps
 
       - uses: azure/setup-helm@v4
 
@@ -109,9 +122,12 @@ jobs:
           helm lint --strict $chart -f 12-Helm/values-kind.yaml
           helm lint --strict $chart -f 12-Helm/values-floci.yaml --set database.url=postgresql://u:p@db:5432/knowledge
           helm template devops-ai $chart -n devops-ai -f 12-Helm/values-kind.yaml > kind.yaml
+          # What ArgoCD renders (step 13): the kind values plus the GHCR image
+          helm template devops-ai $chart -n devops-ai -f 12-Helm/values-kind.yaml -f 13-ArgoCD/values-argocd.yaml > argocd.yaml
+          grep -q "image: \"ghcr.io/nvb20/devops-ai-app:sha-" argocd.yaml
           helm template devops-ai $chart -n devops-ai -f 12-Helm/values-floci.yaml \
             --set database.url=postgresql://u:p@db:5432/knowledge --set-string llm.openrouterApiKey=x > floci.yaml
-          for f in kind.yaml floci.yaml; do
+          for f in kind.yaml floci.yaml argocd.yaml; do
             docker run --rm -i ghcr.io/yannh/kubeconform:latest -strict -summary - < $f
           done
           # kind runs Postgres in the cluster, Floci uses RDS
@@ -180,3 +196,31 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # Step 13: GitOps. The image is on GHCR; record its tag in Git, and ArgoCD (which watches main) rolls it out.
+  # A push made with GITHUB_TOKEN starts no workflow, so this commit doesn't build again ([skip ci] says so too).
+  gitops:
+    needs: image
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history, so the rebase below always finds where main moved from
+
+      - name: Point ArgoCD at the new image
+        run: |
+          tag="sha-${GITHUB_SHA::7}"
+          sed -i -E "s/^  tag: .*/  tag: \"$tag\"/" 13-ArgoCD/values-argocd.yaml
+          if git diff --quiet; then echo "Already on $tag"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -qam "Deploy $tag with ArgoCD [skip ci]"
+          # Another merge may have landed meanwhile: rebase on it and try again
+          for attempt in 1 2 3; do
+            git pull -q --rebase origin main && git push -q origin HEAD:main && exit 0
+            sleep 5
+          done
+          exit 1

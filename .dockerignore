@@ -6,6 +6,8 @@
 !07-n8n-Ollama/tests
 !09-Monitoring/app
 !09-Monitoring/tests
+!14-Platform/app
+!14-Platform/tests
 !knowledge-base
 **/__pycache__
 **/*.pyc

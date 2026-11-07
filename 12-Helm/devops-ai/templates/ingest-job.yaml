@@ -23,6 +23,12 @@ spec:
         {{- include "devops-ai.selectorLabels" (dict "component" "ingest" "root" .) | nindent 8 }}
     spec:
       restartPolicy: OnFailure
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- range . }}
+        - name: {{ . }}
+        {{- end }}
+      {{- end }}
       securityContext:
         runAsNonRoot: true
         runAsUser: {{ .Values.runAsUser }}

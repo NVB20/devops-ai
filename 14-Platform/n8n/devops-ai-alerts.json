@@ -1,0 +1,198 @@
+{
+  "id": "devopsAiAlerts01",
+  "name": "DevOps AI alerts to Discord",
+  "nodes": [
+    {
+      "id": "a1000000-0000-4000-8000-000000000001",
+      "name": "Alert from Alertmanager",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "devops-ai-alert",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "devops-ai-alert",
+        "responseMode": "onReceived",
+        "options": {}
+      }
+    },
+    {
+      "id": "a1000000-0000-4000-8000-000000000002",
+      "name": "One item per alert",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "fieldToSplitOut": "body.alerts",
+        "include": "noOtherFields",
+        "options": {}
+      }
+    },
+    {
+      "id": "a1000000-0000-4000-8000-000000000003",
+      "name": "Ask the DevOps AI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "onError": "continueRegularOutput",
+      "notes": "If the chatbot can't answer (it may be what's down), the alert still goes to Discord without its advice.",
+      "parameters": {
+        "method": "POST",
+        "url": "http://app:8000/chat",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ message: 'Prometheus alert ' + $json.labels.alertname + ' is firing: ' + ($json.annotations.summary || '') + '. ' + ($json.annotations.description || '') + ' What should I check, and how do I fix it?' }) }}",
+        "options": {
+          "timeout": 300000
+        }
+      }
+    },
+    {
+      "id": "a1000000-0000-4000-8000-000000000004",
+      "name": "Discord message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1000000-0000-4000-8000-000000000005",
+              "name": "content",
+              "type": "string",
+              "value": "={{ (() => { const alert = $('One item per alert').item.json; const head = '🚨 **' + alert.labels.alertname + '** (' + (alert.labels.severity || 'no severity') + '): ' + (alert.annotations.summary || ''); const advice = $json.answer ? $json.answer + ($json.sources && $json.sources.length ? '\\n\\nSources: ' + $json.sources.join(', ') : '') + ($json.review && $json.review.status === 'flagged' ? '\\n⚠ Not all of this is in the runbooks.' : '') : '(The DevOps AI could not answer: ' + (($json.error && $json.error.message) || 'no reply') + ')'; return (head + '\\n\\n' + advice).slice(0, 1900); })() }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1000000-0000-4000-8000-000000000006",
+      "name": "Discord configured?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a1000000-0000-4000-8000-000000000007",
+              "leftValue": "={{ $env.DISCORD_WEBHOOK_URL }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1000000-0000-4000-8000-000000000008",
+      "name": "Post to Discord",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        -100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.DISCORD_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ content: $json.content }) }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Alert from Alertmanager": {
+      "main": [
+        [
+          {
+            "node": "One item per alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "One item per alert": {
+      "main": [
+        [
+          {
+            "node": "Ask the DevOps AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ask the DevOps AI": {
+      "main": [
+        [
+          {
+            "node": "Discord message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Discord message": {
+      "main": [
+        [
+          {
+            "node": "Discord configured?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Discord configured?": {
+      "main": [
+        [
+          {
+            "node": "Post to Discord",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "active": false
+}

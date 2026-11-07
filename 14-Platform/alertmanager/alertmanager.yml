@@ -1,0 +1,14 @@
+# Every firing alert goes to n8n's alert workflow, which asks the chatbot what to do and posts it to Discord.
+# Alerts are grouped by name: one message per alert name every 4 hours at most, not one per scrape.
+route:
+  receiver: n8n
+  group_by: [alertname]
+  group_wait: 10s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: n8n
+    webhook_configs:
+      - url: http://n8n:5678/webhook/devops-ai-alert
+        send_resolved: false  # only "it broke", not "it's fixed"
