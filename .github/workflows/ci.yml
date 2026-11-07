@@ -1,6 +1,6 @@
 # Step 08: test every pull request and push, and publish the chatbot image to GHCR from main.
 #   test    – the tests of steps 06, 07 and 09 against a real Postgres + pgvector, after a real ingest
-#   configs – compose files, Prometheus config and alert rules, Kubernetes manifests
+#   configs – compose files, Prometheus config and alert rules, Kubernetes manifests, Terraform (fmt + validate)
 #   image   – builds the latest step's image; on main it's pushed as ghcr.io/<owner>/devops-ai-app:{latest,sha-xxxxxxx}
 # See 08-CICD/README.md.
 name: CI
@@ -88,6 +88,7 @@ jobs:
           docker compose -f docker-compose.yml config --quiet
           docker compose -f docker-compose.yml -f 07-n8n-Ollama/compose.yml config --quiet
           docker compose -f docker-compose.yml -f 07-n8n-Ollama/compose.yml -f 09-Monitoring/compose.yml config --quiet
+          docker compose -f 11-Terraform-Floci/compose.yml config --quiet
 
       - name: Prometheus config and alert rules
         run: |
@@ -98,6 +99,17 @@ jobs:
         run: |
           docker run --rm -v "$PWD/10-Kubernetes:/k8s:ro" ghcr.io/yannh/kubeconform:latest \
             -strict -summary /k8s/manifests
+
+      - uses: hashicorp/setup-terraform@v3
+
+      # Both stages of step 11. validate needs no Floci and no state: it checks the code and the provider schemas.
+      - name: Terraform
+        run: |
+          terraform fmt -check -recursive -diff 11-Terraform-Floci
+          for stage in infra app; do
+            terraform -chdir=11-Terraform-Floci/$stage init -backend=false -input=false
+            terraform -chdir=11-Terraform-Floci/$stage validate
+          done
 
   image:
     needs: [test, configs]

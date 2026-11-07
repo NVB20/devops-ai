@@ -14,8 +14,9 @@ My work on the [DevOps Mentor–Mentee project](https://github.com/yehudasho/din
 | 08 | [08-CICD](./08-CICD) – GitHub Actions: tests on a real pgvector, config checks, image pushed to GHCR | 🚧 first run pending |
 | 09 | [09-Monitoring](./09-Monitoring) – `/metrics`, Prometheus with alert rules, a Grafana dashboard | 🚧 first run pending |
 | 10 | [10-Kubernetes](./10-Kubernetes) – Postgres, the ingest Job and the chatbot on a local kind cluster | 🚧 first run pending |
+| 11 | [11-Terraform-Floci](./11-Terraform-Floci) – Terraform builds the AWS side (VPC, S3, ECR, RDS with pgvector, EKS) on Floci, a local AWS emulator, and deploys the chatbot there | 🚧 first run pending |
 
-Next, following the project plan: Helm (11), ArgoCD (12), Terraform/AWS (13), the full platform (14).
+Next, following the project plan: Helm (12), ArgoCD (13), the full platform (14).
 
 ## Setup (once)
 
@@ -263,6 +264,55 @@ kind delete cluster --name devops-ai
 ```
 
 To use Ollama instead, set `LLM_PROVIDER: ollama` in `20-config.yaml`, apply it, and `kubectl -n devops-ai rollout restart deployment app`. To pull the image from GHCR (step 08) instead of loading it, make the package public (or add an image pull secret) and set `image: ghcr.io/nvb20/devops-ai-app:latest`.
+
+### Terraform on a local AWS (step 11)
+
+The AWS part of the project plan without an AWS account: [Floci](https://github.com/floci-io/floci) emulates AWS on your machine (`localhost:4566`), and the normal Terraform AWS provider talks to it. RDS, EKS and ECR are real containers that Floci starts: a pgvector Postgres, a k3s cluster and a registry.
+
+```
+infra stage:  VPC + 2 subnets ─ S3 (runbooks) ─ ECR ─ RDS Postgres 17 + pgvector ─ EKS 1.33 + node group
+              IAM roles, a deployer user, the DB credentials in Secrets Manager, a kubeconfig
+app stage:    on the EKS cluster: ingest Job → RDS, the chatbot Deployment + Service, image from ECR
+```
+
+Two stages because the app stage's Kubernetes provider needs the cluster to exist before Terraform can plan against it. The app stage reads the infra stage's outputs from its state file.
+
+Needs: Docker, Terraform 1.6+, kubectl, and AWS CLI v2 (only for kubectl's login: `aws eks get-token`). From the repo root:
+
+```powershell
+# 1. Floci (once). The first EKS cluster also pulls the k3s image.
+docker compose -f 11-Terraform-Floci/compose.yml up -d
+
+# 2. The AWS side: about 2-5 minutes, mostly the cluster starting
+terraform -chdir=11-Terraform-Floci/infra init
+terraform -chdir=11-Terraform-Floci/infra apply
+
+# 3. The chatbot image, into ECR (the push_image output prints these two lines)
+docker build -f 09-Monitoring/Dockerfile -t localhost:4566/000000000000/us-east-1/devops-ai-app:09 .
+docker push localhost:4566/000000000000/us-east-1/devops-ai-app:09
+
+# 4. The chatbot on EKS. It waits for the ingest Job and for the app to be ready.
+$env:TF_VAR_openrouter_api_key = "<your key>"
+terraform -chdir=11-Terraform-Floci/app init
+terraform -chdir=11-Terraform-Floci/app apply
+
+# 5. Open it (the cluster's ports aren't published, so through kubectl)
+kubectl --kubeconfig 11-Terraform-Floci/infra/kubeconfig -n devops-ai port-forward svc/app 8083:8000
+```
+
+The chat is at http://127.0.0.1:8083/ui. `terraform output` in each stage shows the rest (ECR URL, RDS endpoint, cluster endpoint). Tear down with `terraform destroy` in `app`, then in `infra`, then `docker compose -f 11-Terraform-Floci/compose.yml down -v`.
+
+How the Floci parts fit together (all set in `11-Terraform-Floci/compose.yml`):
+
+- **pgvector on RDS.** Floci's RDS runs `postgres:16-alpine` by default, which has no pgvector. `FLOCI_SERVICES_RDS_DEFAULT_POSTGRES_IMAGE=pgvector/pgvector:pg17` swaps the image. The RDS master user is a superuser there, so the ingest's `CREATE EXTENSION vector` works, as on real RDS.
+- **Pods reach RDS** at `localhost.floci.io:<port>`. Floci proxies each database on a port of 7001-7099 inside its own container, and Floci's DNS answers that name with its container's address inside the cluster. On real AWS, set `db_host_in_cluster = ""` to use the RDS address.
+- **ECR URLs** use the path style (`localhost:4566/<account>/<region>/<repo>`), because Docker Desktop's containerd image store pushes over plain HTTP only to `localhost`. Floci points the cluster's containerd at the same registry, so pods pull the same URL.
+- **EKS logins** need a real IAM key: Floci refuses its public `test/test` key for them (it would grant cluster-admin). The infra stage creates a `devops-ai-deployer` user with an access entry; the kubeconfig and the app stage sign in as it. The kubeconfig and the state files hold that key and the database password, so they're git-ignored.
+- **No AWS CLI?** Use k3s's own admin kubeconfig instead: `docker cp floci-aws-eks-devops-ai:/etc/rancher/k3s/k3s.yaml k3s.yaml`, then replace `https://127.0.0.1:6443` in it with the `cluster_endpoint` output.
+
+What's emulated, not real: security groups and routes are recorded but not enforced, IAM policies aren't enforced, and there's no cost or AWS limit. It shows the Terraform works and the pieces connect; it doesn't prove it on AWS. To use Ollama from the cluster, `-var llm_provider=ollama` (whether pods reach your host's Ollama through Floci's DNS isn't tested).
+
+CI runs `terraform fmt -check` and `terraform validate` on both stages (no Floci needed).
 
 ## Run a step (PowerShell)
 
