@@ -1,0 +1,44 @@
+{{- if .Values.ingest.enabled }}
+{{- /* Everything the Job depends on: the image (which holds knowledge-base/), the database, its settings */}}
+{{- $inputs := list (include "devops-ai.image" .) .Values.image.pullPolicy (include "devops-ai.databaseSecret" .) (include "devops-ai.databaseUrl" . | sha256sum) .Values.ingest .Values.runAsUser }}
+# Loads the runbooks into the database. Its name ends with a hash of what it depends on, so it runs again
+# exactly when the image (and so the runbooks), the database or its settings change; otherwise it's
+# left as it is. That also avoids changing a Job in place, which Kubernetes refuses.
+# It's a plain resource, not a hook, so it behaves the same under helm and ArgoCD (step 13):
+# `helm upgrade --wait --wait-for-jobs` waits for it, and the app's readiness waits for the data.
+# While the database is still starting it fails, and the Job retries it.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ printf "%s-ingest-%s" (include "devops-ai.fullname" . | trunc 50 | trimSuffix "-") ($inputs | toJson | sha256sum | trunc 8) }}
+  labels:
+    {{- include "devops-ai.labels" . | nindent 4 }}
+    {{- include "devops-ai.selectorLabels" (dict "component" "ingest" "root" .) | nindent 4 }}
+spec:
+  backoffLimit: {{ .Values.ingest.backoffLimit }}
+  template:
+    metadata:
+      labels:
+        {{- include "devops-ai.labels" . | nindent 8 }}
+        {{- include "devops-ai.selectorLabels" (dict "component" "ingest" "root" .) | nindent 8 }}
+    spec:
+      restartPolicy: OnFailure
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- range . }}
+        - name: {{ . }}
+        {{- end }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: {{ .Values.runAsUser }}
+      containers:
+        - name: ingest
+          image: {{ include "devops-ai.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["python", "-m", "app.ingest"]
+          env:
+            {{- include "devops-ai.databaseEnv" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.ingest.resources | nindent 12 }}
+{{- end }}

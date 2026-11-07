@@ -1,0 +1,37 @@
+# Prometheus inside the cluster. Its default config scrapes every pod annotated prometheus.io/scrape,
+# which the chart's app pods are, so the step 09 metrics show up with nothing else to configure.
+# Kept small for kind: no Alertmanager, Pushgateway or node exporter, no volume (data is lost on restart).
+#   kubectl -n monitoring port-forward svc/prometheus-server 9091:80   then http://127.0.0.1:9091
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prometheus
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: prometheus
+    targetRevision: "*"  # the latest chart; pin a version (e.g. 27.x.y) once it works for you
+    helm:
+      releaseName: prometheus
+      valuesObject:
+        alertmanager:
+          enabled: false
+        prometheus-pushgateway:
+          enabled: false
+        prometheus-node-exporter:
+          enabled: false
+        server:
+          persistentVolume:
+            enabled: false
+          retention: 2d
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,226 @@
+# Step 08: test every pull request and push, and publish the chatbot image to GHCR from main.
+# Step 13: then write the new image's tag into 13-ArgoCD/values-argocd.yaml, which ArgoCD deploys.
+#   test    – the tests of steps 06, 07 and 09 against a real Postgres + pgvector, after a real ingest
+#   configs – compose files, Prometheus config and alert rules, Kubernetes manifests, Helm chart, Terraform (fmt + validate)
+#   image   – builds the latest step's image; on main it's pushed as ghcr.io/<owner>/devops-ai-app:{latest,sha-xxxxxxx}
+#   gitops  – on main, commits that sha-xxxxxxx tag to 13-ArgoCD/values-argocd.yaml (ArgoCD then rolls it out)
+# See 08-CICD/README.md.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch cancels the run still going for the older one
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # The step whose image is built and deployed (Kubernetes runs it in step 10)
+  APP_STEP: 14-Platform
+
+jobs:
+  test:
+    name: test (${{ matrix.step }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        step: [06-Deploy, 07-n8n-Ollama, 09-Monitoring, 14-Platform]
+    services:
+      db:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: devops
+          POSTGRES_PASSWORD: devops
+          POSTGRES_DB: knowledge
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U devops -d knowledge"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://devops:devops@127.0.0.1:5432/knowledge
+      # The app builds its LLM client at import. The tests replace it with a fake, so no real key is needed.
+      OPENROUTER_API_KEY: ci-not-a-real-key
+      FASTEMBED_CACHE_PATH: ${{ github.workspace }}/.fastembed
+    defaults:
+      run:
+        working-directory: ${{ matrix.step }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: ${{ matrix.step }}/app/requirements.txt
+
+      # The embedding model (~90 MB), downloaded once and reused by the next runs
+      - uses: actions/cache@v4
+        with:
+          path: .fastembed
+          key: fastembed-all-MiniLM-L6-v2
+
+      - name: Install
+        run: python -m pip install -r app/requirements.txt
+
+      - name: Load the runbooks into Postgres
+        run: python -m app.ingest
+
+      # test_retrieval.py runs for real here: the database is up and holds the runbooks
+      - name: Tests
+        run: python -m pytest tests -v -p no:cacheprovider
+
+  configs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compose files (every step's stack)
+        env:
+          OPENROUTER_API_KEY: x
+        run: |
+          docker compose -f docker-compose.yml config --quiet
+          docker compose -f docker-compose.yml -f 07-n8n-Ollama/compose.yml config --quiet
+          docker compose -f docker-compose.yml -f 07-n8n-Ollama/compose.yml -f 09-Monitoring/compose.yml config --quiet
+          docker compose -f docker-compose.yml -f 07-n8n-Ollama/compose.yml -f 09-Monitoring/compose.yml -f 14-Platform/compose.yml config --quiet
+          docker compose -f 11-Terraform-Floci/compose.yml config --quiet
+
+      - name: Prometheus and Alertmanager configs, alert rules, n8n workflows
+        run: |
+          for step in 09-Monitoring 14-Platform; do
+            docker run --rm -v "$PWD/$step/prometheus:/etc/prometheus:ro" --entrypoint promtool \
+              prom/prometheus:latest check config /etc/prometheus/prometheus.yml
+          done
+          docker run --rm -v "$PWD/14-Platform/alertmanager:/etc/alertmanager:ro" --entrypoint amtool \
+            prom/alertmanager:latest check-config /etc/alertmanager/alertmanager.yml
+          for f in 07-n8n-Ollama/n8n/*.json 14-Platform/n8n/*.json; do python3 -m json.tool "$f" > /dev/null; done
+
+      - name: Kubernetes manifests and ArgoCD Applications
+        run: |
+          docker run --rm -v "$PWD/10-Kubernetes:/k8s:ro" ghcr.io/yannh/kubeconform:latest \
+            -strict -summary /k8s/manifests
+          # ArgoCD's Application is a CRD: its schema comes from the community CRD catalog
+          docker run --rm -v "$PWD/13-ArgoCD:/argocd:ro" ghcr.io/yannh/kubeconform:latest -strict -summary \
+            -schema-location default \
+            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+            /argocd/root.yaml /argocd/apps
+
+      - uses: azure/setup-helm@v4
+
+      # Step 12: lint the chart, render it for kind and for Floci, and check the result against the Kubernetes schema
+      - name: Helm chart
+        run: |
+          chart=12-Helm/devops-ai
+          helm lint --strict $chart -f 12-Helm/values-kind.yaml
+          helm lint --strict $chart -f 12-Helm/values-floci.yaml --set database.url=postgresql://u:p@db:5432/knowledge
+          helm template devops-ai $chart -n devops-ai -f 12-Helm/values-kind.yaml > kind.yaml
+          # What ArgoCD renders (step 13): the kind values plus the GHCR image
+          helm template devops-ai $chart -n devops-ai -f 12-Helm/values-kind.yaml -f 13-ArgoCD/values-argocd.yaml > argocd.yaml
+          grep -q "image: \"ghcr.io/nvb20/devops-ai-app:sha-" argocd.yaml
+          helm template devops-ai $chart -n devops-ai -f 12-Helm/values-floci.yaml \
+            --set database.url=postgresql://u:p@db:5432/knowledge --set-string llm.openrouterApiKey=x > floci.yaml
+          for f in kind.yaml floci.yaml argocd.yaml; do
+            docker run --rm -i ghcr.io/yannh/kubeconform:latest -strict -summary - < $f
+          done
+          # kind runs Postgres in the cluster, Floci uses RDS
+          # (bash -e ignores a failing "! cmd", so the negative checks fail the step themselves)
+          grep -q "kind: StatefulSet" kind.yaml
+          if grep -q "kind: StatefulSet" floci.yaml; then echo "Floci values render a Postgres"; exit 1; fi
+          # The ingest Job keeps its name while nothing it depends on changes, and gets a new one when the image does
+          job() { helm template devops-ai $chart -f 12-Helm/values-kind.yaml "$@" | grep -o "devops-ai-ingest-[0-9a-f]*" | head -1; }
+          [ "$(job)" = "$(job --set replicaCount=2)" ]
+          [ "$(job)" != "$(job --set image.tag=10)" ]
+          # Settings that can't work stop at render time
+          if helm template devops-ai $chart 2> err.txt; then echo "rendered without a database"; exit 1; fi
+          grep -q "exactly one of postgres.enabled" err.txt
+          if helm template devops-ai $chart -f 12-Helm/values-kind.yaml --set llm.provider=openai 2> err.txt; then echo "rendered a bad provider"; exit 1; fi
+          grep -q "llm.provider must be" err.txt
+
+      - uses: hashicorp/setup-terraform@v3
+
+      # The Terraform of steps 11 and 12. validate needs no Floci and no state: it checks the code and the provider schemas.
+      - name: Terraform
+        run: |
+          terraform fmt -check -recursive -diff 11-Terraform-Floci
+          terraform fmt -check -recursive -diff 12-Helm
+          for root in 11-Terraform-Floci/infra 11-Terraform-Floci/app 12-Helm/floci; do
+            terraform -chdir=$root init -backend=false -input=false
+            terraform -chdir=$root validate
+          done
+
+  image:
+    needs: [test, configs]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write  # push to GHCR with the built-in GITHUB_TOKEN, no extra secret
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Image names must be lowercase: metadata-action lowercases the owner (NVB20 -> nvb20)
+      - name: Tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/devops-ai-app
+          tags: |
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      # Pull requests build the image to prove it builds; only main pushes it
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ env.APP_STEP }}/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Step 13: GitOps. The image is on GHCR; record its tag in Git, and ArgoCD (which watches main) rolls it out.
+  # A push made with GITHUB_TOKEN starts no workflow, so this commit doesn't build again ([skip ci] says so too).
+  gitops:
+    needs: image
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history, so the rebase below always finds where main moved from
+
+      - name: Point ArgoCD at the new image
+        run: |
+          tag="sha-${GITHUB_SHA::7}"
+          sed -i -E "s/^  tag: .*/  tag: \"$tag\"/" 13-ArgoCD/values-argocd.yaml
+          if git diff --quiet; then echo "Already on $tag"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -qam "Deploy $tag with ArgoCD [skip ci]"
+          # Another merge may have landed meanwhile: rebase on it and try again
+          for attempt in 1 2 3; do
+            git pull -q --rebase origin main && git push -q origin HEAD:main && exit 0
+            sleep 5
+          done
+          exit 1

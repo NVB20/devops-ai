@@ -1,0 +1,73 @@
+# Defaults for every environment. values-kind.yaml and values-floci.yaml (next to the chart) override them.
+
+image:
+  repository: devops-ai-app
+  tag: ""  # empty: the chart's appVersion ("14")
+  pullPolicy: IfNotPresent
+
+# For a private registry, e.g. a GHCR package that isn't public: names of docker-registry Secrets
+imagePullSecrets: []
+
+replicaCount: 1
+
+llm:
+  provider: openrouter  # openrouter or ollama
+  openrouterModel: openrouter/free
+  ollamaBaseUrl: http://host.docker.internal:11434/v1
+  ollamaModel: llama3.2
+  # The OpenRouter key: either the key itself (the chart stores it in a Secret; pass it with
+  # --set-string llm.openrouterApiKey=..., never in a values file in Git), or the name of an existing
+  # Secret with an OPENROUTER_API_KEY key. Neither is needed with provider: ollama.
+  openrouterApiKey: ""
+  existingSecret: ""
+
+# Where the knowledge base is. One of:
+#   postgres.enabled: true - a pgvector Postgres in the cluster (kind)
+#   database.url           - an outside database, e.g. RDS (the chart stores it in a Secret)
+#   database.existingSecret - an existing Secret with a DATABASE_URL key
+database:
+  url: ""
+  existingSecret: ""
+
+postgres:
+  enabled: false
+  image: pgvector/pgvector:pg17
+  user: devops
+  password: devops  # local clusters only: use database.url / existingSecret anywhere shared
+  database: knowledge
+  storage: 1Gi
+  storageClass: ""  # empty: the cluster's default StorageClass
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {memory: 1Gi}
+
+# Loads knowledge-base/ (baked into the image) into the database. A new Job runs when the image,
+# the database or these settings change (templates/ingest-job.yaml), so the runbooks follow the image.
+ingest:
+  enabled: true
+  backoffLimit: 6
+  resources:
+    requests: {cpu: 200m, memory: 512Mi}
+    limits: {memory: 1Gi}
+
+service:
+  type: ClusterIP  # NodePort on kind
+  port: 8000
+  nodePort: null
+
+# Whisper (voice input) loads ~0.5-1 GB on the first voice message
+resources:
+  requests: {cpu: 250m, memory: 768Mi}
+  limits: {memory: 3Gi}
+
+# The image's chatbot user. Numeric, so the kubelet can check it isn't root.
+runAsUser: 1000
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8000"
+  prometheus.io/path: /metrics
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

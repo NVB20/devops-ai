@@ -1,0 +1,82 @@
+# The chatbot.
+#   readiness: /health, so it gets no traffic while the database is down or the runbooks aren't loaded yet
+#   liveness:  only "is the port open", so a database outage doesn't make Kubernetes restart a healthy app
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "devops-ai.fullname" . }}
+  labels:
+    {{- include "devops-ai.labels" . | nindent 4 }}
+    {{- include "devops-ai.selectorLabels" (dict "component" "app" "root" .) | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "devops-ai.selectorLabels" (dict "component" "app" "root" .) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "devops-ai.labels" . | nindent 8 }}
+        {{- include "devops-ai.selectorLabels" (dict "component" "app" "root" .) | nindent 8 }}
+      annotations:
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        # A new model, key or database URL restarts the pods, so they pick it up
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secrets: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- range . }}
+        - name: {{ . }}
+        {{- end }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: {{ .Values.runAsUser }}
+      containers:
+        - name: app
+          image: {{ include "devops-ai.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: {{ include "devops-ai.fullname" . }}
+            - secretRef:
+                name: {{ include "devops-ai.openrouterSecret" . }}
+                optional: true  # not needed with llm.provider: ollama
+          env:
+            {{- include "devops-ai.databaseEnv" . | nindent 12 }}
+          # Loading the embedding model takes a few seconds: up to 2 minutes before liveness starts
+          startupProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 5
+            failureThreshold: 24
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 6
+          livenessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

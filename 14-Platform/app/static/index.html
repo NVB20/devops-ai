@@ -1,0 +1,1223 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DevOps AI Chatbot</title>
+  <!-- Tab icon: the chat page's orb (its wavy rings, frozen in one frame) -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3CradialGradient id='g'%3E%3Cstop offset='0' stop-color='%234fe8c3' stop-opacity='.18'/%3E%3Cstop offset='1' stop-color='%234fe8c3' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='%230d1215'/%3E%3Ccircle cx='32' cy='32' r='30' fill='url%28%23g%29'/%3E%3Cg fill='none' stroke='%234fe8c3' stroke-width='1' stroke-linejoin='round'%3E%3Cpath d='M49.6 32.0 L49.6 33.2 L49.7 34.5 L49.7 35.8 L49.6 37.1 L49.5 38.4 L49.2 39.6 L48.7 40.9 L47.9 42.0 L47.0 42.9 L45.8 43.6 L44.5 44.0 L43.0 44.3 L41.6 44.3 L40.2 44.2 L38.9 44.0 L37.8 43.9 L36.8 43.9 L35.9 44.1 L35.1 44.5 L34.3 45.2 L33.5 46.1 L32.5 47.2 L31.4 48.3 L30.2 49.4 L28.8 50.3 L27.3 50.9 L25.7 51.2 L24.3 51.2 L22.9 50.7 L21.7 49.9 L20.7 48.8 L19.9 47.4 L19.4 46.0 L19.0 44.5 L18.8 43.1 L18.6 41.7 L18.4 40.5 L18.2 39.4 L17.8 38.3 L17.4 37.3 L17.0 36.3 L16.6 35.3 L16.2 34.2 L16.0 33.1 L15.9 32.0 L16.0 30.9 L16.2 29.8 L16.6 28.7 L17.2 27.7 L17.8 26.8 L18.3 25.9 L18.9 25.0 L19.3 24.1 L19.7 23.0 L19.9 21.9 L20.2 20.6 L20.5 19.2 L20.8 17.7 L21.3 16.2 L22.1 14.8 L23.0 13.6 L24.2 12.6 L25.5 12.0 L27.0 11.8 L28.5 12.0 L30.0 12.5 L31.4 13.4 L32.6 14.6 L33.7 15.8 L34.6 17.1 L35.4 18.2 L36.2 19.1 L36.9 19.9 L37.7 20.4 L38.6 20.6 L39.6 20.8 L40.7 20.8 L42.0 20.9 L43.3 21.1 L44.6 21.4 L45.9 21.9 L47.0 22.6 L48.0 23.5 L48.7 24.6 L49.2 25.8 L49.5 27.0 L49.6 28.3 L49.7 29.5 L49.7 30.8 L49.6 32.0Z' stroke-opacity='0.25'/%3E%3Cpath d='M50.5 32.0 L50.7 33.3 L50.8 34.6 L50.9 36.0 L50.8 37.4 L50.5 38.7 L49.9 40.0 L49.1 41.1 L48.1 42.0 L46.8 42.8 L45.4 43.3 L44.0 43.6 L42.5 43.7 L41.1 43.7 L39.9 43.7 L38.8 43.8 L37.9 44.1 L37.1 44.6 L36.3 45.3 L35.5 46.2 L34.7 47.4 L33.7 48.6 L32.6 49.9 L31.3 51.0 L29.9 51.9 L28.4 52.5 L26.8 52.7 L25.3 52.5 L24.0 51.9 L22.8 51.0 L21.7 49.8 L20.9 48.4 L20.3 47.0 L19.8 45.5 L19.4 44.2 L19.0 42.9 L18.6 41.7 L18.2 40.6 L17.7 39.6 L17.1 38.6 L16.5 37.6 L16.0 36.6 L15.6 35.5 L15.3 34.3 L15.2 33.2 L15.3 32.0 L15.5 30.8 L15.9 29.7 L16.4 28.7 L16.9 27.7 L17.3 26.7 L17.7 25.6 L18.0 24.6 L18.2 23.4 L18.3 22.0 L18.4 20.6 L18.6 19.1 L18.9 17.5 L19.4 15.9 L20.2 14.5 L21.2 13.3 L22.4 12.4 L23.9 11.9 L25.4 11.8 L27.0 12.0 L28.6 12.7 L30.1 13.6 L31.4 14.6 L32.6 15.8 L33.6 16.8 L34.5 17.8 L35.4 18.5 L36.2 19.0 L37.2 19.2 L38.2 19.3 L39.4 19.2 L40.6 19.2 L42.0 19.2 L43.4 19.3 L44.8 19.7 L46.0 20.2 L47.1 21.0 L48.1 22.0 L48.8 23.1 L49.3 24.3 L49.7 25.6 L49.9 26.9 L50.1 28.2 L50.2 29.4 L50.4 30.7 L50.5 32.0Z' stroke-opacity='0.39'/%3E%3Cpath d='M51.7 32.0 L51.9 33.4 L52.0 34.8 L52.0 36.2 L51.6 37.6 L51.0 38.9 L50.2 40.1 L49.0 41.1 L47.7 41.8 L46.3 42.4 L44.8 42.8 L43.4 43.0 L42.1 43.2 L40.9 43.4 L39.9 43.8 L39.1 44.3 L38.4 45.1 L37.7 46.1 L37.0 47.3 L36.1 48.6 L35.2 50.0 L34.0 51.3 L32.7 52.5 L31.3 53.3 L29.7 53.8 L28.1 53.9 L26.6 53.6 L25.2 52.9 L24.0 51.9 L22.9 50.7 L22.0 49.3 L21.3 47.9 L20.6 46.6 L20.0 45.3 L19.5 44.1 L18.9 43.0 L18.2 42.0 L17.5 41.0 L16.8 40.1 L16.1 39.1 L15.5 38.0 L15.1 36.9 L14.8 35.7 L14.7 34.4 L14.7 33.2 L14.9 32.0 L15.3 30.8 L15.6 29.7 L16.0 28.6 L16.3 27.5 L16.5 26.4 L16.6 25.1 L16.6 23.8 L16.6 22.3 L16.6 20.8 L16.7 19.1 L17.0 17.5 L17.5 15.9 L18.3 14.5 L19.4 13.3 L20.7 12.5 L22.3 12.0 L23.9 12.0 L25.6 12.3 L27.2 12.9 L28.8 13.8 L30.2 14.8 L31.4 15.7 L32.5 16.6 L33.5 17.3 L34.5 17.7 L35.5 17.9 L36.6 17.9 L37.7 17.8 L39.0 17.6 L40.4 17.5 L41.8 17.5 L43.3 17.6 L44.6 18.0 L45.9 18.6 L47.0 19.4 L48.0 20.4 L48.7 21.6 L49.3 22.8 L49.7 24.1 L50.1 25.4 L50.4 26.7 L50.7 28.0 L51.0 29.3 L51.4 30.6 L51.7 32.0Z' stroke-opacity='0.53'/%3E%3Cpath d='M52.9 32.0 L53.1 33.5 L53.0 35.0 L52.6 36.4 L52.0 37.7 L51.0 38.9 L49.8 39.9 L48.5 40.8 L47.1 41.4 L45.6 41.9 L44.3 42.3 L43.1 42.7 L42.0 43.2 L41.2 43.8 L40.5 44.6 L39.8 45.6 L39.2 46.8 L38.6 48.3 L37.8 49.8 L36.8 51.2 L35.6 52.6 L34.3 53.7 L32.8 54.5 L31.2 54.9 L29.6 54.9 L28.0 54.5 L26.6 53.7 L25.3 52.7 L24.1 51.4 L23.2 50.1 L22.3 48.8 L21.5 47.6 L20.7 46.4 L20.0 45.4 L19.2 44.4 L18.4 43.5 L17.5 42.5 L16.7 41.6 L15.9 40.6 L15.2 39.5 L14.7 38.3 L14.4 37.0 L14.3 35.8 L14.3 34.5 L14.5 33.2 L14.7 32.0 L14.9 30.8 L15.1 29.6 L15.2 28.4 L15.2 27.2 L15.1 25.8 L14.9 24.4 L14.7 22.8 L14.6 21.1 L14.7 19.4 L15.0 17.7 L15.6 16.1 L16.5 14.7 L17.6 13.6 L19.1 12.9 L20.7 12.5 L22.5 12.5 L24.2 12.8 L25.9 13.4 L27.5 14.1 L29.0 14.9 L30.3 15.7 L31.5 16.3 L32.5 16.7 L33.6 16.8 L34.7 16.8 L35.8 16.6 L37.1 16.3 L38.5 16.0 L39.9 15.8 L41.4 15.7 L42.9 15.9 L44.3 16.3 L45.6 16.9 L46.7 17.8 L47.7 18.9 L48.4 20.1 L49.1 21.3 L49.7 22.6 L50.2 23.9 L50.7 25.2 L51.2 26.5 L51.7 27.8 L52.2 29.2 L52.6 30.6 L52.9 32.0Z' stroke-opacity='0.67'/%3E%3Cpath d='M54.0 32.0 L53.9 33.5 L53.4 35.0 L52.7 36.4 L51.7 37.7 L50.5 38.7 L49.2 39.6 L47.8 40.4 L46.4 41.0 L45.2 41.6 L44.1 42.2 L43.3 42.9 L42.6 43.7 L42.0 44.8 L41.5 46.1 L41.0 47.5 L40.4 49.1 L39.6 50.8 L38.6 52.3 L37.4 53.7 L36.0 54.7 L34.5 55.4 L32.8 55.7 L31.2 55.6 L29.6 55.1 L28.1 54.3 L26.7 53.3 L25.5 52.1 L24.4 50.9 L23.4 49.7 L22.4 48.6 L21.5 47.6 L20.5 46.7 L19.6 45.8 L18.6 45.0 L17.6 44.1 L16.7 43.1 L15.8 42.1 L15.1 41.0 L14.6 39.8 L14.2 38.5 L14.0 37.2 L14.0 35.8 L14.1 34.5 L14.2 33.2 L14.2 32.0 L14.2 30.8 L14.1 29.5 L13.8 28.1 L13.5 26.7 L13.2 25.1 L12.9 23.5 L12.7 21.7 L12.7 19.9 L13.0 18.2 L13.7 16.6 L14.7 15.3 L16.0 14.2 L17.5 13.5 L19.3 13.1 L21.1 13.1 L22.9 13.4 L24.7 13.9 L26.3 14.5 L27.8 15.1 L29.1 15.6 L30.3 15.9 L31.4 16.0 L32.6 15.9 L33.7 15.6 L35.0 15.2 L36.3 14.7 L37.7 14.3 L39.2 14.1 L40.8 14.0 L42.3 14.2 L43.7 14.6 L45.0 15.4 L46.2 16.3 L47.2 17.3 L48.0 18.5 L48.8 19.8 L49.5 21.1 L50.2 22.3 L50.9 23.6 L51.6 24.9 L52.2 26.2 L52.9 27.6 L53.4 29.0 L53.8 30.5 L54.0 32.0Z' stroke-opacity='0.81'/%3E%3Cpath d='M54.5 32.0 L54.1 33.5 L53.3 35.0 L52.3 36.3 L51.1 37.5 L49.7 38.5 L48.4 39.3 L47.2 40.1 L46.2 40.8 L45.3 41.7 L44.6 42.6 L44.1 43.7 L43.7 45.0 L43.3 46.5 L42.9 48.1 L42.3 49.9 L41.5 51.6 L40.5 53.1 L39.3 54.5 L37.9 55.5 L36.2 56.1 L34.6 56.3 L32.8 56.1 L31.2 55.6 L29.6 54.8 L28.2 53.8 L26.8 52.7 L25.6 51.7 L24.5 50.6 L23.4 49.7 L22.3 48.8 L21.2 48.0 L20.1 47.3 L18.9 46.5 L17.8 45.7 L16.8 44.7 L15.9 43.7 L15.1 42.5 L14.6 41.3 L14.2 39.9 L13.9 38.6 L13.8 37.2 L13.7 35.9 L13.7 34.6 L13.5 33.3 L13.3 32.0 L12.9 30.7 L12.4 29.3 L11.9 27.7 L11.4 26.1 L11.0 24.4 L10.8 22.5 L10.8 20.7 L11.2 19.0 L11.9 17.4 L13.0 16.1 L14.4 15.0 L16.1 14.3 L17.9 14.0 L19.8 13.9 L21.7 14.1 L23.5 14.5 L25.1 14.9 L26.6 15.2 L27.9 15.4 L29.1 15.5 L30.2 15.3 L31.4 14.9 L32.6 14.4 L33.9 13.8 L35.3 13.2 L36.8 12.7 L38.4 12.4 L39.9 12.4 L41.5 12.6 L42.9 13.1 L44.2 13.8 L45.5 14.8 L46.5 15.9 L47.5 17.0 L48.4 18.2 L49.3 19.5 L50.1 20.7 L51.0 21.9 L51.9 23.2 L52.7 24.5 L53.5 25.8 L54.1 27.3 L54.5 28.8 L54.7 30.4 L54.5 32.0Z' stroke-opacity='0.95'/%3E%3Cpath d='M54.5 32.0 L53.7 33.5 L52.7 34.9 L51.5 36.1 L50.3 37.2 L49.1 38.2 L48.1 39.1 L47.2 40.1 L46.6 41.1 L46.1 42.2 L45.8 43.6 L45.6 45.1 L45.3 46.8 L44.9 48.6 L44.4 50.4 L43.6 52.1 L42.6 53.7 L41.3 55.0 L39.8 55.9 L38.1 56.5 L36.3 56.6 L34.6 56.4 L32.8 55.9 L31.2 55.1 L29.7 54.2 L28.2 53.3 L26.9 52.4 L25.6 51.5 L24.4 50.8 L23.2 50.1 L21.9 49.5 L20.7 48.8 L19.4 48.1 L18.2 47.3 L17.1 46.3 L16.2 45.3 L15.4 44.1 L14.8 42.8 L14.3 41.4 L14.0 40.0 L13.7 38.7 L13.5 37.3 L13.2 36.0 L12.8 34.7 L12.3 33.4 L11.7 32.0 L11.0 30.5 L10.3 29.0 L9.7 27.3 L9.2 25.5 L8.9 23.6 L9.0 21.8 L9.5 20.0 L10.3 18.4 L11.5 17.1 L13.0 16.1 L14.8 15.4 L16.7 15.0 L18.6 14.9 L20.5 14.9 L22.2 15.1 L23.8 15.3 L25.3 15.3 L26.6 15.3 L27.8 15.0 L28.9 14.5 L30.1 13.9 L31.3 13.1 L32.7 12.4 L34.1 11.7 L35.7 11.2 L37.3 10.9 L38.9 10.9 L40.4 11.2 L41.9 11.7 L43.3 12.4 L44.6 13.4 L45.7 14.4 L46.8 15.5 L47.9 16.6 L48.9 17.8 L50.0 18.9 L51.0 20.1 L52.0 21.3 L53.0 22.6 L53.9 24.0 L54.6 25.5 L55.0 27.1 L55.2 28.7 L55.0 30.4 L54.5 32.0Z' stroke-opacity='0.81'/%3E%3Cpath d='M53.9 32.0 L52.9 33.5 L51.8 34.8 L50.7 36.0 L49.8 37.1 L48.9 38.2 L48.3 39.3 L47.9 40.5 L47.7 41.8 L47.6 43.4 L47.5 45.0 L47.4 46.9 L47.1 48.8 L46.6 50.7 L45.8 52.4 L44.7 54.0 L43.3 55.2 L41.7 56.1 L40.0 56.6 L38.2 56.7 L36.3 56.5 L34.5 56.0 L32.8 55.3 L31.2 54.6 L29.7 53.8 L28.3 53.1 L26.9 52.5 L25.5 51.9 L24.2 51.4 L22.8 50.9 L21.4 50.3 L20.1 49.7 L18.8 48.9 L17.7 47.9 L16.7 46.8 L15.8 45.6 L15.1 44.3 L14.6 42.9 L14.1 41.5 L13.7 40.2 L13.3 38.8 L12.7 37.5 L12.1 36.2 L11.4 34.9 L10.5 33.5 L9.6 32.0 L8.8 30.4 L8.0 28.6 L7.5 26.8 L7.2 24.9 L7.4 23.0 L7.9 21.3 L8.9 19.7 L10.2 18.4 L11.8 17.3 L13.7 16.6 L15.6 16.1 L17.5 15.9 L19.3 15.8 L21.0 15.7 L22.6 15.6 L23.9 15.4 L25.1 15.0 L26.3 14.5 L27.4 13.7 L28.6 12.9 L29.9 12.0 L31.3 11.1 L32.8 10.4 L34.3 9.8 L36.0 9.5 L37.6 9.5 L39.2 9.8 L40.7 10.4 L42.2 11.1 L43.6 12.0 L44.8 13.0 L46.1 14.0 L47.3 15.0 L48.5 16.1 L49.7 17.1 L50.9 18.3 L52.1 19.5 L53.2 20.7 L54.1 22.2 L54.8 23.7 L55.3 25.3 L55.4 27.0 L55.2 28.7 L54.7 30.4 L53.9 32.0Z' stroke-opacity='0.67'/%3E%3Cpath d='M53.0 32.0 L52.1 33.4 L51.2 34.7 L50.5 35.9 L49.9 37.1 L49.6 38.4 L49.5 39.8 L49.5 41.3 L49.6 43.0 L49.7 44.8 L49.6 46.8 L49.3 48.7 L48.8 50.7 L48.0 52.4 L46.8 53.9 L45.3 55.1 L43.7 55.9 L41.9 56.4 L40.0 56.5 L38.1 56.3 L36.2 55.9 L34.5 55.4 L32.8 54.9 L31.2 54.3 L29.7 53.8 L28.2 53.4 L26.8 53.0 L25.3 52.7 L23.8 52.3 L22.3 51.8 L20.9 51.2 L19.6 50.4 L18.4 49.4 L17.3 48.3 L16.4 47.1 L15.6 45.8 L14.9 44.4 L14.3 43.0 L13.7 41.7 L13.1 40.4 L12.3 39.2 L11.4 37.9 L10.4 36.6 L9.4 35.2 L8.3 33.7 L7.3 32.0 L6.5 30.2 L5.9 28.3 L5.7 26.4 L5.9 24.5 L6.6 22.8 L7.7 21.2 L9.1 19.8 L10.8 18.7 L12.6 17.9 L14.6 17.4 L16.4 17.0 L18.2 16.7 L19.8 16.4 L21.2 16.0 L22.5 15.5 L23.6 14.8 L24.7 14.0 L25.8 13.0 L27.0 11.9 L28.3 10.9 L29.7 9.9 L31.2 9.1 L32.8 8.6 L34.5 8.3 L36.2 8.4 L37.8 8.6 L39.4 9.2 L40.9 9.9 L42.4 10.7 L43.8 11.6 L45.2 12.5 L46.5 13.4 L47.9 14.3 L49.3 15.3 L50.7 16.3 L52.0 17.5 L53.1 18.8 L54.1 20.2 L54.9 21.8 L55.3 23.5 L55.4 25.3 L55.2 27.1 L54.7 28.8 L53.9 30.5 L53.0 32.0Z' stroke-opacity='0.53'/%3E%3Cpath d='M52.3 32.0 L51.7 33.4 L51.2 34.7 L51.0 36.0 L50.9 37.4 L51.1 38.9 L51.3 40.6 L51.6 42.4 L51.8 44.4 L51.8 46.4 L51.6 48.4 L51.0 50.4 L50.1 52.1 L48.9 53.6 L47.3 54.7 L45.6 55.5 L43.7 56.0 L41.8 56.1 L39.8 56.1 L37.9 55.8 L36.1 55.5 L34.4 55.1 L32.8 54.8 L31.2 54.5 L29.7 54.3 L28.1 54.1 L26.5 53.9 L25.0 53.6 L23.4 53.2 L21.9 52.6 L20.5 51.8 L19.3 50.9 L18.1 49.8 L17.1 48.5 L16.2 47.2 L15.4 45.9 L14.7 44.6 L13.8 43.3 L12.9 42.1 L11.9 40.9 L10.8 39.7 L9.6 38.4 L8.3 37.0 L7.1 35.5 L6.0 33.8 L5.1 32.0 L4.6 30.1 L4.4 28.1 L4.8 26.2 L5.5 24.4 L6.7 22.8 L8.2 21.4 L9.9 20.3 L11.8 19.3 L13.6 18.6 L15.4 18.1 L17.0 17.5 L18.5 17.0 L19.8 16.3 L20.9 15.6 L22.0 14.6 L23.0 13.5 L24.1 12.3 L25.2 11.1 L26.5 10.0 L27.9 8.9 L29.5 8.1 L31.1 7.6 L32.9 7.3 L34.6 7.3 L36.3 7.6 L38.0 8.1 L39.6 8.7 L41.1 9.4 L42.7 10.2 L44.2 10.9 L45.7 11.7 L47.2 12.5 L48.7 13.4 L50.2 14.4 L51.6 15.5 L52.9 16.8 L53.9 18.3 L54.7 20.0 L55.1 21.7 L55.2 23.6 L55.0 25.4 L54.5 27.2 L53.9 28.9 L53.1 30.5 L52.3 32.0Z' stroke-opacity='0.39'/%3E%3Cpath d='M52.2 32.0 L52.1 33.4 L52.1 34.8 L52.4 36.3 L52.8 38.0 L53.3 39.7 L53.7 41.7 L54.0 43.7 L54.1 45.8 L53.8 47.8 L53.2 49.8 L52.2 51.5 L50.8 52.9 L49.2 54.1 L47.4 54.9 L45.5 55.4 L43.5 55.6 L41.6 55.6 L39.7 55.6 L37.8 55.5 L36.1 55.3 L34.4 55.3 L32.8 55.2 L31.2 55.2 L29.6 55.2 L27.9 55.1 L26.3 54.9 L24.7 54.5 L23.1 54.0 L21.7 53.2 L20.3 52.2 L19.1 51.1 L18.0 49.9 L17.0 48.7 L16.0 47.4 L15.0 46.2 L14.0 45.1 L12.9 44.0 L11.6 42.8 L10.2 41.7 L8.8 40.4 L7.3 39.1 L6.0 37.5 L4.8 35.8 L4.0 34.0 L3.5 32.0 L3.4 30.0 L3.9 28.0 L4.7 26.2 L5.9 24.5 L7.5 23.1 L9.2 21.8 L11.0 20.8 L12.7 20.0 L14.4 19.2 L15.8 18.4 L17.1 17.6 L18.2 16.7 L19.2 15.7 L20.2 14.5 L21.1 13.1 L22.1 11.8 L23.3 10.4 L24.6 9.2 L26.1 8.1 L27.6 7.3 L29.3 6.8 L31.1 6.5 L32.9 6.5 L34.7 6.7 L36.4 7.1 L38.1 7.6 L39.7 8.2 L41.4 8.8 L43.0 9.4 L44.7 10.0 L46.4 10.7 L48.0 11.5 L49.6 12.4 L51.1 13.6 L52.4 14.9 L53.4 16.4 L54.2 18.1 L54.7 20.0 L54.8 21.9 L54.6 23.8 L54.2 25.6 L53.7 27.4 L53.1 29.0 L52.6 30.6 L52.2 32.0Z' stroke-opacity='0.25'/%3E%3C/g%3E%3C/svg%3E">
+  <style>
+    :root {
+      --bg: #06090b; --panel: #0d1215; --card: #141b1e; --card-2: #1a2327;
+      --text: #e9eef0; --muted: #8b979c; --border: #1e282c; --line: #2b383d;
+      --accent: #4fe8c3; --accent-soft: rgba(79, 232, 195, .12); --accent-glow: rgba(79, 232, 195, .35);
+      --danger: #ff5e6c; --danger-soft: rgba(255, 94, 108, .12); --warn: #f5b94a;
+      --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+      color-scheme: dark;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; color: var(--text);
+      background: var(--bg) radial-gradient(900px 600px at 15% -10%, rgba(79, 232, 195, .10), transparent 60%),
+                  radial-gradient(800px 600px at 110% 110%, rgba(79, 232, 195, .07), transparent 60%);
+      background-color: var(--bg);
+      font: 14px/1.5 "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    /* --split is the chat's share of the width; the 14px gutter between the panels is the drag handle */
+    .page { --split: 50%; height: 100vh; display: grid; grid-template-columns: calc(var(--split) - 7px) 14px minmax(0, 1fr); padding: 14px; }
+    .splitter { position: relative; cursor: col-resize; touch-action: none; outline: none; }
+    .splitter::before {
+      content: ""; position: absolute; top: 50%; left: 50%; width: 4px; height: 44px; transform: translate(-50%, -50%);
+      border-radius: 2px; background: var(--line); transition: background-color .15s, height .15s, box-shadow .15s;
+    }
+    .splitter:hover::before, .splitter:focus-visible::before, body.dragging .splitter::before {
+      height: 72px; background: var(--accent); box-shadow: 0 0 10px var(--accent-glow);
+    }
+    body.dragging { cursor: col-resize; user-select: none; }
+    section {
+      min-width: 0; min-height: 0; display: flex; flex-direction: column;
+      background: var(--panel); border: 1px solid var(--border); border-radius: 22px; overflow: hidden;
+    }
+    header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+    header > div { flex: 1 1 240px; min-width: 0; }  /* a narrow panel wraps the legend below instead of squeezing the title */
+    header h1, header h2 { margin: 0; font-size: 15px; font-weight: 600; }
+    /* Both panel headers are exactly title + one subtitle line, so their dividers always line up */
+    header p { margin: 2px 0 0; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dot { display: inline-block; width: 7px; height: 7px; margin-right: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent-glow); vertical-align: 1px; }
+    .legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; margin-bottom: 34px; font: 11px var(--mono); color: var(--muted); white-space: nowrap; }
+    .legend i { display: inline-block; width: 8px; height: 8px; margin-right: 5px; border: 1.5px solid var(--line); border-radius: 50%; vertical-align: -1px; }
+    .legend .running i { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .legend .done i { border-color: var(--accent); background: var(--accent); }
+    .legend .skipped i { border-style: dashed; opacity: .5; }
+    .legend .error i { border-color: var(--danger); background: var(--danger); }
+
+    /* ── Chat: rounded cards ── */
+    #messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .row { max-width: 88%; padding: 11px 14px 9px; border-radius: 16px; background: var(--card); border: 1px solid transparent; }
+    .row.user { align-self: flex-end; background: var(--card-2); border-bottom-right-radius: 6px; }
+    .row.bot { align-self: flex-start; border-bottom-left-radius: 6px; cursor: pointer; }
+    .row.bot:hover { border-color: var(--line); }
+    .row.bot.selected { border-color: var(--accent); }
+    .row .who { display: none; }
+    .row .text { white-space: pre-wrap; overflow-wrap: anywhere; }
+    .row .time { display: block; margin-top: 6px; font-size: 10.5px; color: var(--muted); }
+    .row .meta { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border); font: 11px var(--mono); color: var(--muted); overflow-wrap: anywhere; }
+    .row .meta:empty { display: none; }
+    .row .meta .route { color: var(--accent); }
+    /* Step 14: what the answer review found */
+    .row .review { margin-top: 6px; font: 11px var(--mono); color: var(--muted); }
+    .row .review.flagged { color: var(--danger); }
+    .row .review ul { margin: 4px 0 0; padding-left: 18px; }
+    .row.pending .text { color: var(--muted); }
+    .row.pending .text::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent-glow); animation: pulse 1.1s ease-in-out infinite; }
+    .row.failed .text { color: var(--danger); }
+    .empty { margin: auto; max-width: 360px; width: 100%; text-align: center; color: var(--muted); }
+    .empty .orb { display: block; width: 168px; height: 168px; margin: 0 auto 6px; }
+    .empty p { margin: 0 0 14px; font-size: 13px; }
+    .empty button {
+      display: block; width: 100%; margin: 0 0 8px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 14px;
+      background: var(--card); color: var(--text); font: inherit; font-size: 13px; cursor: pointer; text-align: left;
+    }
+    .empty button:hover { border-color: var(--accent); }
+    form { display: flex; gap: 10px; align-items: center; padding: 12px 16px 16px; }
+    input {
+      flex: 1; min-width: 0; padding: 12px 18px; border-radius: 999px; border: 1px solid var(--border);
+      background: var(--card); color: var(--text); font: inherit;
+    }
+    input::placeholder { color: var(--muted); }
+    input:focus { outline: none; border-color: var(--accent); }
+    form button {
+      flex: none; width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--accent); color: #06130f;
+      display: grid; place-items: center; cursor: pointer; box-shadow: 0 0 18px var(--accent-glow);
+    }
+    form button svg { width: 18px; height: 18px; }
+    form button:disabled { opacity: .45; cursor: default; box-shadow: none; }
+    form .mic { background: var(--card); color: var(--muted); border: 1px solid var(--border); box-shadow: none; }
+    form .mic:hover { color: var(--text); border-color: var(--line); }
+    form .mic.listening { color: var(--accent); border-color: var(--accent); box-shadow: 0 0 18px var(--accent-glow); animation: pulse 1.1s ease-in-out infinite; }
+    form .mic[hidden] { display: none; }
+    .voice {
+      display: none; align-items: center; gap: 12px; margin: 0 16px; padding: 10px 14px;
+      border: 1px solid var(--accent); border-radius: 16px; background: var(--card); box-shadow: 0 0 18px var(--accent-soft);
+    }
+    .voice.on { display: flex; }
+    .voice canvas { flex: none; width: 140px; height: 36px; }
+    .voice .live { flex: 1; min-width: 0; font-size: 13px; overflow-wrap: anywhere; }
+    .voice .live:empty::before { content: "Listening on " attr(data-mic) " ..."; color: var(--muted); }
+    .voice .clock { flex: none; font: 11px var(--mono); color: var(--muted); }
+
+    /* ── Architecture panel ── */
+    .arch { overflow-y: auto; }
+    .arch-body { width: 100%; max-width: 640px; margin: 0 auto; padding: 24px 20px; }
+    /* One spacing for every row, inside and outside the LangGraph group */
+    .diagram { --row: 40px; position: relative; display: flex; flex-direction: column; align-items: center; gap: var(--row); }
+    .diagram svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+    /* The LangGraph group is a soft glow behind its rows, symmetric around the spine: no edges, nothing to cross */
+    .graph-box {
+      position: relative; width: 100%;
+      display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1.4fr) minmax(0, 1fr); column-gap: 12px; row-gap: var(--row);
+    }
+    .graph-box::before {
+      content: ""; position: absolute; inset: -30px -6% -24px; pointer-events: none;
+      background: radial-gradient(closest-side, rgba(79, 232, 195, .075), rgba(79, 232, 195, .02) 60%, transparent);
+      opacity: .7; transition: opacity .4s;
+    }
+    .graph-box.active::before { animation: breathe 2.6s ease-in-out infinite; }
+    @keyframes breathe { 50% { opacity: 1; transform: scale(1.025); } }
+    /* "LANGGRAPH" sits on the spine like a gate the message passes through on its way in */
+    .graph-box > .label {
+      position: absolute; z-index: 1; top: calc(var(--row) / -2); left: 50%; transform: translate(-50%, -50%);
+      padding: 0 8px; background: var(--panel); font: 600 9.5px var(--mono); color: var(--muted); letter-spacing: .16em;
+      transition: color .3s;
+    }
+    .graph-box.active > .label, .graph-box.done > .label { color: var(--accent); }
+    /* A node is a station on the line: a dot where the line arrives, then plain text */
+    .node { position: relative; z-index: 1; width: 100%; padding-top: 11px; text-align: center; transition: opacity .2s; }
+    .node::before {
+      content: ""; position: absolute; top: 0; left: 50%; width: 9px; height: 9px; transform: translate(-50%, -50%);
+      border-radius: 50%; border: 1.5px solid var(--line); background: var(--panel);
+      transition: border-color .2s, background-color .2s, box-shadow .2s;
+    }
+    .diagram > .node { width: 56%; max-width: 340px; }
+    .node .head { display: flex; justify-content: center; align-items: baseline; gap: 7px; }
+    .node b { min-width: 0; font: 600 12.5px var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color .2s; }
+    .node .sub, .node .detail { display: block; font-size: 11px; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    /* Descriptions keep their space but only show on hover; a live result (.detail) replaces them */
+    .node .sub { color: var(--muted); opacity: 0; transition: opacity .15s; }
+    .node:hover .sub { opacity: 1; }
+    .node .detail { font-family: var(--mono); color: var(--accent); }
+    .node .detail:empty { display: none; }
+    .node .detail:not(:empty) + .sub { display: none; }
+    .node[data-state="running"]::before { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft), 0 0 14px var(--accent-glow); animation: pulse 1.1s ease-in-out infinite; }
+    .node[data-state="running"] b { color: var(--accent); }
+    .node[data-state="done"]::before { border-color: var(--accent); background: var(--accent); box-shadow: 0 0 10px var(--accent-glow); }
+    .node[data-state="done"] b { color: var(--accent); }
+    .node[data-state="skipped"] { opacity: .3; }
+    .node[data-state="skipped"]::before { border-style: dashed; }
+    .node[data-state="error"]::before { border-color: var(--danger); background: var(--danger); }
+    .node[data-state="error"] b, .node[data-state="error"] .detail { color: var(--danger); }
+    @keyframes pulse { 50% { opacity: .55; } }
+    /* A running step sends out sonar rings */
+    .node::after {
+      content: ""; position: absolute; top: 0; left: 50%; width: 9px; height: 9px; transform: translate(-50%, -50%);
+      border-radius: 50%; border: 1px solid var(--accent); opacity: 0; pointer-events: none;
+    }
+    .node[data-state="running"]::after { animation: sonar 1.4s ease-out infinite; }
+    @keyframes sonar { 0% { opacity: .7; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(3.4); } }
+    /* Idle: the dot an ambient packet just reached flickers */
+    .node[data-state="idle"].ping::before { animation: ping .9s ease-out; }
+    @keyframes ping { 0% { border-color: var(--accent); box-shadow: 0 0 0 0 var(--accent-glow), 0 0 12px var(--accent-glow); } 100% { box-shadow: 0 0 0 7px transparent; } }
+    @media (prefers-reduced-motion: reduce) {
+      .node[data-state="running"]::before, .node[data-state="running"]::after, .node.ping::before, .graph-box.active::before, .edge.stream,
+      .row.pending .text::before, form .mic.listening { animation: none; }
+    }
+
+    /* Time bar under each timed station: length = share of the slowest step */
+    .node .tbar { display: none; align-items: center; justify-content: center; gap: 6px; margin-top: 4px; }
+    .node.timed .tbar { display: flex; }
+    .node .tbar .bar { width: 64px; height: 3px; border-radius: 2px; background: var(--line); overflow: hidden; }
+    .node .tbar i { display: block; height: 100%; border-radius: 2px; background: var(--accent); transition: width .4s; }
+    .node .tbar em { display: none; font: normal 9.5px var(--mono); letter-spacing: .08em; color: var(--warn); }
+    .node.slowest .tbar i { background: var(--warn); }
+    .node.slowest .tbar em { display: inline; }
+    /* Click a station: its details open in place */
+    .node.has-more { cursor: pointer; }
+    .node.has-more:hover b { text-decoration: underline dotted; text-underline-offset: 3px; }
+    .node .more {
+      display: none; width: fit-content; max-width: 100%; margin: 6px auto 0; padding-top: 6px; border-top: 1px solid var(--border);
+      text-align: left; white-space: pre-line; overflow-wrap: anywhere; font: 11px/1.55 var(--mono); color: var(--muted);
+    }
+    .node.open .more { display: block; }
+
+    /* ── The agent loop: OpenRouter ⇄ your code ⇄ search_runbooks, shared by both agents (one runs per question) ── */
+    .loop { position: relative; z-index: 1; padding: 10px 12px 12px; border: 1px dashed var(--line); border-radius: 16px;
+            transition: border-color .2s, box-shadow .2s, opacity .2s; }
+    .loop[data-state="running"] { border-style: solid; border-color: var(--accent); box-shadow: 0 0 22px var(--accent-soft); }
+    .loop[data-state="done"] { border-style: solid; border-color: rgba(79, 232, 195, .45); }
+    .loop[data-state="skipped"] { opacity: .3; }
+    .loop[data-state="error"] { border-style: solid; border-color: var(--danger); }
+    .loop-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; font: 600 9.5px var(--mono); letter-spacing: .14em; color: var(--muted); }
+    .loop-head .agent { color: var(--accent); letter-spacing: .04em; }
+    .loop-head .badge { flex: none; padding: 1px 8px; border: 1px solid var(--line); border-radius: 999px; font-weight: 400; letter-spacing: .04em; }
+    .loop-head .badge.full { color: var(--warn); border-color: var(--warn); }
+    /* Room above the three dots for the request / reply arcs */
+    .loop-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 6px; margin-top: 54px; }
+    /* What the model is thinking or writing right now, newest words last */
+    .loop .thinking { margin: 10px 0 0; font: italic 11px/1.55 var(--mono); color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere; }
+    .loop .thinking:empty { display: none; }
+    .arrowhead { fill: var(--line); }
+    .arrowhead.on { fill: var(--accent); }
+
+    .edge { fill: none; stroke: var(--line); stroke-width: 1.5; }
+    .edge.on { stroke: var(--accent); stroke-width: 2; }
+    .edge.flow { stroke-width: 2; }
+    .edge.off { stroke-dasharray: 3 4; opacity: .5; }
+    .edge-label { font: 10.5px var(--mono); fill: var(--muted); }
+    .edge-label.on { fill: var(--accent); }
+    .packet { fill: var(--accent); filter: drop-shadow(0 0 4px var(--accent)); }
+    /* Once a path is taken it keeps flowing: small bright dashes drift along it */
+    .edge.stream { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 2 14; stroke-linecap: round; opacity: .9;
+                   filter: drop-shadow(0 0 3px var(--accent)); animation: stream 0.9s linear infinite; }
+    @keyframes stream { to { stroke-dashoffset: -16; } }
+    .ambient { fill: var(--accent); filter: drop-shadow(0 0 5px var(--accent)); }
+    .layer { font: 600 9.5px var(--mono); letter-spacing: .12em; fill: var(--muted); opacity: .5; transition: fill .2s, opacity .2s; }
+    .layer.on { fill: var(--accent); opacity: .85; }
+
+    .log { margin-top: 30px; }
+    .log-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 10px 0 4px; }
+    .log h3 { margin: 0; min-width: 0; font-size: 13px; font-weight: 600; }
+    .log h3 span { font-weight: 400; color: var(--muted); }
+    .replay {
+      flex: none; padding: 3px 11px; border: 1px solid var(--line); border-radius: 999px; background: none;
+      color: var(--accent); font: 11px var(--mono); cursor: pointer;
+    }
+    .replay:hover { border-color: var(--accent); }
+    .log-row {
+      display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; column-gap: 10px; padding: 6px 0;
+      border-bottom: 1px solid var(--border); font: 12px var(--mono);
+    }
+    .log-row:last-child { border-bottom: 0; }
+    .log-row .node-name { color: var(--accent); }
+    .log-row .result { overflow-wrap: anywhere; }
+    .log-row .ms { color: var(--muted); text-align: right; }
+    .log-row .chunk { grid-column: 2 / -1; display: flex; align-items: center; gap: 8px; margin-top: 3px; color: var(--muted); font-size: 11.5px; }
+    .log-row .chunk .bar { flex: none; width: 48px; height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
+    .log-row .chunk .bar i { display: block; height: 100%; background: var(--accent); }
+    .log-row .chunk .src { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .log-row.db .node-name { padding-left: 14px; color: var(--muted); }
+    /* The model's thinking for a turn: two lines, click for all of it */
+    .log-row .thought {
+      grid-column: 2 / -1; margin-top: 3px; font: italic 11.5px/1.5 var(--mono); color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer;
+    }
+    .log-row .thought.open { display: block; }
+    .log-row .thought::before { content: "thinking · "; font-style: normal; color: var(--accent); opacity: .7; }
+    .log-row.error .node-name, .log-row.error .result { color: var(--danger); }
+    .log-empty { padding: 8px 0; font-size: 12px; color: var(--muted); }
+
+    @media (max-width: 900px) {
+      .page { height: auto; grid-template-columns: 1fr; padding: 10px; gap: 10px; }
+      .splitter { display: none; }  /* stacked: nothing to split */
+      .chat { height: 72vh; }
+      header { flex-direction: column; align-items: flex-start; gap: 4px; }
+      .arch-body { padding: 16px; }
+      .graph-box { column-gap: 5px; }
+      .node b { font-size: 10.5px; }
+      .node .sub, .node .detail { font-size: 10.5px; }
+      .node .tbar .bar { width: 44px; }
+      .log-row { grid-template-columns: 84px minmax(0, 1fr) auto; column-gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="chat">
+      <header>
+        <div>
+          <h1><span class="dot"></span>DevOps AI Chatbot</h1>
+          <p>DevOps Mentor&ndash;Mentee project &middot; led by Yehuda Shoshani</p>
+        </div>
+      </header>
+      <div id="messages" aria-live="polite">
+        <div class="empty" id="empty">
+          <canvas class="orb" id="orb" aria-hidden="true"></canvas>
+          <p>Go ahead, ask about our systems and runbooks.</p>
+          <button type="button">My pod keeps going into CrashLoopBackOff</button>
+          <button type="button">How do we rotate database credentials?</button>
+          <button type="button">Pods are pending and a node is NotReady</button>
+          <button type="button">Something is broken</button>
+          <button type="button">What's the best pizza in town?</button>
+        </div>
+      </div>
+      <div class="voice" id="voice" aria-live="polite">
+        <canvas aria-hidden="true"></canvas>
+        <span class="live" dir="auto"></span>
+        <span class="clock"></span>
+      </div>
+      <form id="form">
+        <input id="input" dir="auto" autocomplete="off" placeholder="Write anything here ..." required>
+        <button type="button" id="mic" class="mic" aria-label="Speak your question" title="Speak your question" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 17v5"/></svg>
+        </button>
+        <button id="send" aria-label="Send">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
+        </button>
+      </form>
+    </section>
+
+    <div class="splitter" id="splitter" role="separator" aria-orientation="vertical" aria-label="Resize chat and architecture"
+         aria-valuemin="25" aria-valuemax="75" aria-valuenow="50" tabindex="0" title="Drag to resize · double-click to reset"></div>
+
+    <section class="arch">
+      <header>
+        <div>
+          <h2>Architecture</h2>
+          <p>How the selected message travels through the app &middot; click a step for details</p>
+        </div>
+      </header>
+      <div class="arch-body">
+        <div class="legend">
+          <span class="running"><i></i>running</span>
+          <span class="done"><i></i>done</span>
+          <span class="skipped"><i></i>skipped</span>
+          <span class="error"><i></i>error</span>
+        </div>
+        <div class="diagram" id="diagram">
+          <svg id="edges" aria-hidden="true"></svg>
+          <div class="node" data-node="chat"><div class="head"><b>Chat UI</b></div><span class="detail"></span><span class="sub">this page</span></div>
+          <div class="node" data-node="api"><div class="head"><b>FastAPI</b></div><span class="detail"></span><span class="sub">POST /chat/stream</span></div>
+          <div class="graph-box">
+            <span class="label">LANGGRAPH</span>
+            <div class="node" data-node="classify" style="grid-column: 2 / 4; grid-row: 1"><div class="head"><b>classify</b></div><span class="detail"></span><span class="sub">one word: troubleshooting / knowledge / other</span></div>
+            <div class="node" data-node="off_topic" style="grid-column: 1; grid-row: 2; justify-self: end; width: auto; max-width: 100%"><div class="head"><b>off_topic</b></div><span class="detail"></span><span class="sub">fixed reply</span></div>
+            <div class="node" data-node="troubleshoot" style="grid-column: 2; grid-row: 2"><div class="head"><b>Troubleshooting Agent</b></div><span class="detail"></span><span class="sub">cause &rarr; check &rarr; fix &rarr; escalate</span></div>
+            <div class="node" data-node="knowledge" style="grid-column: 3; grid-row: 2"><div class="head"><b>Knowledge Agent</b></div><span class="detail"></span><span class="sub">explanation + steps</span></div>
+            <div class="loop" data-node="loop" style="grid-column: 2 / 4; grid-row: 3">
+              <div class="loop-head"><span>AGENT LOOP <span class="agent" id="loop-agent"></span></span><span class="badge" id="loop-badge">0/3 searches</span></div>
+              <div class="loop-row">
+                <div class="node" data-node="llm"><div class="head"><b id="llm-name">OpenRouter</b></div><span class="detail"></span><span class="sub">decides: search or answer</span></div>
+                <div class="node" data-node="code"><div class="head"><b>your code</b></div><span class="detail"></span><span class="sub">runs the loop</span></div>
+                <div class="node" data-node="db"><div class="head"><b>search_runbooks</b></div><span class="detail"></span><span class="sub">embed + pgvector</span></div>
+              </div>
+              <p class="thinking" id="loop-thinking"></p>
+            </div>
+          </div>
+          <div class="node" data-node="answer"><div class="head"><b>Answer</b></div><span class="detail"></span><span class="sub">back to the chat</span></div>
+        </div>
+
+        <div class="log">
+          <div class="log-head">
+            <h3>Step log <span id="log-question"></span></h3>
+            <button type="button" id="replay" class="replay" hidden>&#9654; Replay</button>
+          </div>
+          <div id="log-rows"><div class="log-empty">Send a message to see each step.</div></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // Which LLM the server uses (step 07: OpenRouter or a local Ollama model). /health says, without calling the LLM.
+    let LLM_NAME = "OpenRouter";
+    fetch("/health").then(r => r.json()).then(h => {
+      if (h.llm && h.llm.provider === "ollama") LLM_NAME = "Ollama";
+      document.getElementById("llm-name").textContent = LLM_NAME;
+    }).catch(() => {});
+    const messages = document.getElementById("messages");
+    const form = document.getElementById("form");
+    const input = document.getElementById("input");
+    const send = document.getElementById("send");
+    const diagram = document.getElementById("diagram");
+    const svg = document.getElementById("edges");
+    const logRows = document.getElementById("log-rows");
+    const logQuestion = document.getElementById("log-question");
+
+    // The stations. llm / code / db are the three parts of the agent loop panel ("loop"), which has its own state too.
+    const NODES = ["chat", "api", "classify", "off_topic", "troubleshoot", "knowledge", "llm", "code", "db", "answer"];
+    const AGENTS = { troubleshoot: "Troubleshooting Agent", knowledge: "Knowledge Agent" };
+    const LOOP_PARTS = ["llm", "code", "db"];
+    const MAX_SEARCHES = 3;
+    const EDGES = [
+      ["chat", "api"], ["api", "classify"],
+      ["classify", "off_topic", "other"], ["classify", "troubleshoot"], ["classify", "knowledge"],
+      ["troubleshoot", "loop"], ["knowledge", "loop"],
+      ["off_topic", "answer"], ["loop", "answer"],
+    ];
+    // Which layer of the system each row is, written down the right edge
+    const LAYERS = [["chat", "CLIENT"], ["api", "API"], ["classify", "ROUTER"], ["troubleshoot", "AGENTS"],
+                    ["code", "TOOL LOOP"], ["answer", "RESPONSE"]];
+    const REDUCED_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const el = id => diagram.querySelector(`[data-node="${id}"]`);
+    const replayButton = document.getElementById("replay");
+
+    // Every station gets a time bar and a details block, filled by render()
+    for (const id of NODES) {
+      el(id).insertAdjacentHTML("beforeend", `<span class="tbar"><span class="bar"><i></i></span><em>SLOWEST</em></span><span class="more"></span>`);
+    }
+
+    let selected = null;  // the trace shown on the right
+    let replaying = false;
+
+    // A trace is everything the diagram shows for one message. Per node: state, one-line detail,
+    // ms (for the time bar) and more (lines shown when the station is clicked).
+    // loop: what the agent loop is doing. active: which side is working ("llm" / "db"), pending: searches still out,
+    // live: the text the model is streaming in the current turn, turns: the log entry of each turn.
+    function newTrace(question) {
+      return {
+        // review and revise (step 14) have no box in the diagram: they show in the step log and under the answer
+        question, nodes: Object.fromEntries([...NODES, "loop", "review", "revise"].map(n => [n, { state: "idle", detail: "" }])), log: [], events: [], open: null,
+        loop: { agent: null, llmCalls: 0, searches: 0, active: null, pending: 0, live: "", turns: {} },
+      };
+    }
+
+    function fmt(ms) {
+      return ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1)} s`;
+    }
+
+    // ── Drawing ──
+    function render() {
+      const trace = selected || newTrace();
+      const timed = NODES.filter(id => trace.nodes[id].ms != null);
+      const max = Math.max(1, ...timed.map(id => trace.nodes[id].ms));
+      const slowest = timed.length > 1 ? timed.reduce((a, b) => (trace.nodes[b].ms > trace.nodes[a].ms ? b : a)) : null;
+      for (const id of NODES) {
+        const n = trace.nodes[id], node = el(id);
+        node.dataset.state = n.state;
+        node.querySelector(".detail").textContent = n.detail;
+        node.classList.toggle("timed", n.ms != null);
+        node.classList.toggle("slowest", id === slowest);
+        if (n.ms != null) node.querySelector(".tbar i").style.width = `${Math.max(4, (n.ms / max) * 100)}%`;
+        node.classList.toggle("has-more", !!n.more);
+        node.classList.toggle("open", trace.open === id);
+        node.querySelector(".more").textContent = (n.more || []).join("\n");
+      }
+      drawEdges(trace);
+      logQuestion.textContent = trace.question ? `· “${trace.question}”` : "";
+      logRows.replaceChildren(...(trace.log.length ? trace.log.map(logRow) : [emptyLog()]));
+      replayButton.hidden = replaying || trace.live || !trace.events.length;
+      renderLoop(trace);
+      // The LangGraph glow breathes while one of its steps runs, and its gate label stays lit once the graph was used
+      const graphBox = diagram.querySelector(".graph-box"), inGraph = NODES.filter(id => !["chat", "api", "answer"].includes(id));
+      graphBox.classList.toggle("active", inGraph.some(id => trace.nodes[id].state === "running"));
+      graphBox.classList.toggle("done", inGraph.some(id => trace.nodes[id].state === "done"));
+    }
+
+    function renderLoop(trace) {
+      const { loop } = trace;
+      el("loop").dataset.state = trace.nodes.loop.state;
+      document.getElementById("loop-agent").textContent = loop.agent ? `· ${AGENTS[loop.agent]}` : "";
+      const badge = document.getElementById("loop-badge");
+      badge.textContent = `${loop.searches}/${MAX_SEARCHES} searches`;
+      badge.classList.toggle("full", loop.searches >= MAX_SEARCHES);
+      // Only the newest words fit: keep the tail of what the model is streaming
+      const live = loop.live.replace(/\s+/g, " ").trim();
+      document.getElementById("loop-thinking").textContent = live.length > 170 ? "…" + live.slice(-170) : live;
+    }
+
+    function emptyLog() {
+      const div = document.createElement("div");
+      div.className = "log-empty";
+      div.textContent = "Send a message to see each step.";
+      return div;
+    }
+
+    function logRow(entry) {
+      const row = document.createElement("div");
+      row.className = "log-row" + (entry.error ? " error" : "") + (entry.kind ? " " + entry.kind : "");
+      for (const [cls, text] of [["node-name", entry.node], ["result", entry.text], ["ms", entry.ms == null ? "" : fmt(entry.ms)]]) {
+        const span = document.createElement("span");
+        span.className = cls;
+        span.textContent = text;
+        row.appendChild(span);
+      }
+      const thought = (entry.thinking || "").trim();
+      if (thought) {
+        const line = document.createElement("span");
+        line.className = "thought" + (entry.open ? " open" : "");
+        line.textContent = thought;
+        line.title = entry.open ? "Click to fold" : "Click to read all of it";
+        line.addEventListener("click", () => { entry.open = !entry.open; render(); });
+        row.appendChild(line);
+      }
+      for (const chunk of entry.chunks || []) {
+        const line = document.createElement("span");
+        line.className = "chunk";
+        line.innerHTML = `<span class="bar"><i></i></span><span class="sim"></span><span class="src"></span>`;
+        line.querySelector("i").style.width = `${Math.round(chunk.similarity * 100)}%`;
+        line.querySelector(".sim").textContent = chunk.similarity.toFixed(3);
+        line.querySelector(".src").textContent = chunk.source;
+        row.appendChild(line);
+      }
+      return row;
+    }
+
+    // Down from the source, across, down into the target, with rounded bends
+    function edgePath(x1, y1, x2, y2, bend) {
+      const dx = x2 - x1;
+      if (Math.abs(dx) < 1) return `M${x1},${y1} V${y2}`;
+      const dir = Math.sign(dx), r = Math.min(8, Math.abs(dx) / 2, bend - y1, y2 - bend);
+      return `M${x1},${y1} V${bend - r} Q${x1},${bend} ${x1 + dir * r},${bend} H${x2 - dir * r} Q${x2},${bend} ${x2},${bend + r} V${y2}`;
+    }
+
+    function drawEdges(trace) {
+      const box = diagram.getBoundingClientRect();
+      const parts = [ARROWHEADS];
+      // The lines into Answer meet at one junction, halfway between the lowest of them and Answer,
+      // and share a single trunk from there
+      const lowest = Math.max(...["off_topic", "loop"].map(id => el(id).getBoundingClientRect().bottom)) - box.top;
+      const junction = lowest + (el("answer").getBoundingClientRect().top - box.top - lowest) * 0.45;
+      EDGES.forEach(([from, to, label], i) => {
+        const a = el(from).getBoundingClientRect(), b = el(to).getBoundingClientRect();
+        const x1 = a.left + a.width / 2 - box.left, y1 = a.bottom - box.top;
+        // Each agent drops straight down into the loop panel below it
+        const x2 = to === "loop" ? x1 : b.left + b.width / 2 - box.left, y2 = b.top - box.top;
+        // Fan-out bends just below the source; fan-in (into Answer) bends at the shared junction
+        const bend = to === "answer" ? junction : y1 + Math.min(12, (y2 - y1) / 2);
+        const d = edgePath(x1, y1, x2, y2, bend);
+        const s = trace.nodes[from].state, t = trace.nodes[to].state;
+        if (s === "done" && t === "running") {
+          // The message is on its way: the line fades from the finished step toward the running one
+          // and a glowing packet travels along it
+          parts.push(`<linearGradient id="flow${i}" gradientUnits="userSpaceOnUse" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}">
+            <stop offset="0" style="stop-color:var(--accent)"/><stop offset="1" style="stop-color:var(--accent);stop-opacity:.15"/></linearGradient>`);
+          parts.push(`<path class="edge flow" data-edge="${from}>${to}" d="${d}" stroke="url(#flow${i})"/>`);
+          if (!REDUCED_MOTION) {
+            for (const [r, delay] of [[3.5, 0], [2, 0.12]]) {
+              parts.push(`<circle class="packet" r="${r}" opacity="0"><animateMotion dur="1.2s" begin="${delay}s" repeatCount="indefinite" path="${d}"/>
+                <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.1;.85;1" dur="1.2s" begin="${delay}s" repeatCount="indefinite"/></circle>`);
+            }
+          }
+        } else {
+          // An agent and its loop run together: their line is lit for as long as the agent works
+          const lit = (s === "done" && ["done", "error"].includes(t)) || (s === "running" && t === "running");
+          const cls = lit ? "on" : (s === "skipped" || t === "skipped") ? "off" : "";
+          parts.push(`<path class="edge ${cls}" data-edge="${from}>${to}" d="${d}"/>`);
+          if (cls === "on" && ["done", "running"].includes(t) && !REDUCED_MOTION) parts.push(`<path class="edge stream" d="${d}"/>`);
+        }
+        if (label) {
+          const lit = s === "done" && t !== "skipped" && t !== "idle";
+          // Left of the dot when there's room, otherwise (narrow screens) to its right
+          const room = x2 > 60;
+          parts.push(`<text class="edge-label ${lit ? "on" : ""}" x="${room ? x2 - 10 : x2 + 10}" y="${y2 - 6}" text-anchor="${room ? "end" : "start"}">${label}</text>`);
+        }
+      });
+      loopArcs(trace, box, parts);
+      // Layer names need the empty right-hand column; on narrow screens there isn't one
+      if (box.width >= 520) {
+        for (const [id, name] of LAYERS) {
+          // Sit on the same baseline as the step's name
+          const name_ = el(id).querySelector("b").getBoundingClientRect();
+          const active = ["running", "done"].includes(trace.nodes[id].state);
+          parts.push(`<text class="layer ${active ? "on" : ""}" x="${box.width}" y="${name_.bottom - box.top - 4}" text-anchor="end">${name}</text>`);
+        }
+      }
+      // Nothing has happened yet: an ambient packet walks the routes (see ambientFrame)
+      if (NODES.every(id => trace.nodes[id].state === "idle") && !REDUCED_MOTION) {
+        parts.push(`<circle id="ambient" class="ambient" r="3" opacity="0"/>`);
+      }
+      svg.innerHTML = parts.join("");
+    }
+
+    const ARROWHEADS = ["", "on"].map(cls =>
+      `<marker id="arrow${cls}" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+         <path class="arrowhead ${cls}" d="M0,0 L8,4 L0,8 z"/></marker>`).join("");
+
+    // Inside the loop panel, your code talks to each side with two arcs above the dots:
+    // the high one is the request (code → side), the low one the reply (side → code).
+    // A request arc carries packets while that side is working; both arcs stay lit once used.
+    function loopArcs(trace, box, parts) {
+      const { loop } = trace;
+      const dot = id => {
+        const r = el(id).getBoundingClientRect();
+        return { x: r.left + r.width / 2 - box.left, y: r.top - box.top };
+      };
+      const code = dot("code");
+      for (const [side, used] of [["llm", loop.llmCalls > 0], ["db", loop.searches > 0]]) {
+        const far = dot(side);
+        const working = loop.active === side && trace.nodes[side].state === "running";
+        for (const [from, to, height, isRequest] of [[code, far, 44, true], [far, code, 18, false]]) {
+          // The request leaves and lands wide of the dots, the reply close in, so the two arrowheads never meet
+          const gap = isRequest ? 14 : 8, dirn = Math.sign(to.x - from.x);
+          const sx = from.x + dirn * gap, ex = to.x - dirn * (isRequest ? 8 : 14);
+          const d = `M${sx},${from.y - 4} C${sx},${from.y - height} ${ex},${to.y - height} ${ex},${to.y - 6}`;
+          const on = used || (isRequest && working);
+          parts.push(`<path class="edge ${on ? "on" : ""}" d="${d}" marker-end="url(#arrow${on ? "on" : ""})"/>`);
+          if (isRequest && working && !REDUCED_MOTION) {
+            parts.push(`<circle class="packet" r="3" opacity="0"><animateMotion dur="1s" repeatCount="indefinite" path="${d}"/>
+              <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.1;.85;1" dur="1s" repeatCount="indefinite"/></circle>`);
+          }
+        }
+      }
+    }
+
+    // ── Idle animation: a faint packet takes each possible route in turn, and each dot it reaches flickers ──
+    const ROUTES = [
+      ["chat", "api", "classify", "troubleshoot", "loop", "answer"],
+      ["chat", "api", "classify", "knowledge", "loop", "answer"],
+      ["chat", "api", "classify", "off_topic", "answer"],
+    ];
+    const LEG_MS = 700, REST_MS = 1600;
+    const walk = { route: 0, leg: 0, start: 0, restUntil: 0 };
+
+    function ping(id) {
+      const node = el(id);
+      node.classList.remove("ping");
+      void node.offsetWidth;  // restart the animation
+      node.classList.add("ping");
+    }
+
+    function ambientFrame(now) {
+      requestAnimationFrame(ambientFrame);
+      const dot = svg.querySelector("#ambient");
+      if (!dot || now < walk.restUntil) return dot?.setAttribute("opacity", 0);
+      const route = ROUTES[walk.route];
+      if (!walk.start) {
+        walk.start = now;
+        if (walk.leg === 0) ping(route[0]);
+      }
+      const path = svg.querySelector(`path[data-edge="${route[walk.leg]}>${route[walk.leg + 1]}"]`);
+      if (!path) return;
+      const p = Math.min(1, (now - walk.start) / LEG_MS);
+      const eased = p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2;
+      const pt = path.getPointAtLength(eased * path.getTotalLength());
+      dot.setAttribute("cx", pt.x);
+      dot.setAttribute("cy", pt.y);
+      dot.setAttribute("opacity", 0.75);
+      if (p < 1) return;
+      ping(route[walk.leg + 1]);
+      walk.leg++;
+      walk.start = 0;
+      if (walk.leg === route.length - 1) {  // reached Answer: rest, then take the next route
+        walk.leg = 0;
+        walk.route = (walk.route + 1) % ROUTES.length;
+        walk.restUntil = now + REST_MS;
+      }
+    }
+    if (!REDUCED_MOTION) requestAnimationFrame(ambientFrame);
+
+    new ResizeObserver(() => render()).observe(diagram);
+
+    // Click a station to open its details; click again (or another) to close
+    diagram.addEventListener("click", e => {
+      const node = e.target.closest(".node");
+      if (!node || !selected || !selected.nodes[node.dataset.node].more) return;
+      selected.open = selected.open === node.dataset.node ? null : node.dataset.node;
+      render();
+    });
+
+    // ── Applying stream events to a trace ──
+    function set(trace, id, state, detail) {
+      trace.nodes[id].state = state;
+      if (detail !== undefined) trace.nodes[id].detail = detail;
+    }
+
+    function info(trace, id, fields) {
+      Object.assign(trace.nodes[id], fields);
+    }
+
+    // The part of a trace that exists before the server answers: the message left the page
+    function begin(trace) {
+      set(trace, "chat", "done", "message sent");
+      info(trace, "chat", { more: [`“${trace.question}”`] });
+      set(trace, "api", "running");
+    }
+
+    // part: the box that failed when the server knows it ("llm" or "db"); everything else that was running
+    // failed with it. Without a part, every running box failed.
+    function failRunning(trace, detail, part) {
+      const running = [...NODES, "loop"].filter(id => trace.nodes[id].state === "running");
+      if (part && !running.includes(part)) running.push(part);
+      for (const id of running) set(trace, id, "error", !part || id === part ? "failed" : undefined);
+      const where = part || running.find(id => id !== "loop");
+      if (where) info(trace, where, { more: [detail] });
+      trace.loop.active = null;
+      trace.log.push({ node: where || "error", text: detail, error: true });
+    }
+
+    // The log entry of an agent turn, created by its first event (thinking, text or the decision)
+    function turnEntry(trace, turn) {
+      const { loop } = trace;
+      if (!loop.turns[turn]) {
+        loop.turns[turn] = { node: `turn ${turn} · AI`, text: "thinking…", kind: "turn", thinking: "" };
+        trace.log.push(loop.turns[turn]);
+        loop.live = "";
+      }
+      return loop.turns[turn];
+    }
+
+    function apply(trace, ev) {
+      const { loop } = trace;
+      if (ev.type === "start") {
+        set(trace, "api", "done", "request accepted");
+        info(trace, "api", { more: ["POST /chat/stream", "streams one event per step (SSE)"] });
+      } else if (ev.type === "running") {
+        set(trace, ev.node, "running");
+        if (AGENTS[ev.node]) {
+          // The agent starts its loop: your code sends the question to the model
+          loop.agent = ev.node;
+          loop.active = "llm";
+          for (const id of ["loop", "code", "llm"]) set(trace, id, "running");
+          set(trace, "code", "running", "question → AI");
+        }
+      } else if (ev.type === "reasoning" || ev.type === "token") {
+        // The model's thinking, or the text it writes, a few words at a time
+        const entry = turnEntry(trace, ev.turn);
+        if (ev.type === "reasoning") entry.thinking += ev.text;
+        else entry.said = (entry.said || "") + ev.text;
+        loop.live += ev.text;
+      } else if (ev.type === "llm") llmEvent(trace, ev);
+      else if (ev.type === "tool") toolEvent(trace, ev);
+      else if (ev.type === "step") step(trace, ev);
+      else if (ev.type === "done") {
+        set(trace, "answer", "done", `${ev.sources.length} source${ev.sources.length === 1 ? "" : "s"} · total ${fmt(ev.ms)}`);
+        const review = ev.review && REVIEW_TEXT[ev.review.status];
+        info(trace, "answer", { more: [...(ev.sources.length ? ev.sources : ["no runbook sources"]), ...(review ? [review] : []), `total ${fmt(ev.ms)}`] });
+        trace.log.push({ node: "answer", text: ev.sources.join(", ") || "no runbook sources", ms: ev.ms });
+      } else if (ev.type === "error") failRunning(trace, ev.detail, ev.part);
+    }
+
+    const quote = q => `“${q}”`;
+
+    // What the answer review (step 14) found, as shown under the answer and in the step log
+    const REVIEW_TEXT = {
+      passed: "✓ checked against the runbooks",
+      revised: "✓ rewritten once to match the runbooks",
+      flagged: "⚠ not all of this is in the runbooks",
+      unchecked: "review unavailable: not checked",
+      skipped: "",
+    };
+
+    // The model replied: it either asks for searches or gives its final answer
+    function llmEvent(trace, ev) {
+      const { loop } = trace, entry = turnEntry(trace, ev.turn), llm = trace.nodes.llm;
+      loop.llmCalls++;
+      // Text written before a tool call is the model thinking out loud: it goes with the thinking
+      if (ev.action === "search" && entry.said) entry.thinking = [entry.thinking, entry.said].filter(Boolean).join("\n");
+      entry.ms = ev.ms;
+      const decision = ev.action === "search" ? `search ${ev.queries.map(quote).join(", ")}`
+        : ev.action === "clarify" ? "asks a clarifying question"
+        : ev.forced ? "search limit reached → final answer" : "final answer";
+      entry.text = "→ " + decision;
+      info(trace, "llm", { ms: (llm.ms || 0) + ev.ms, model: ev.model, more: [...(llm.more || []), `turn ${ev.turn}: ${decision} · ${fmt(ev.ms)}`] });
+      if (ev.action === "search") {
+        // Your code takes the request and runs the searches
+        loop.active = "db";
+        loop.pending = ev.queries.length;
+        set(trace, "llm", "done", `turn ${ev.turn} → search`);
+        set(trace, "code", "running", `runs ${ev.queries.length === 1 ? "the search" : `${ev.queries.length} searches`}`);
+        set(trace, "db", "running", quote(ev.queries[0]));
+      } else {
+        loop.active = null;
+        set(trace, "llm", "done", `turn ${ev.turn} → ${ev.action === "clarify" ? "question" : "answer"}`);
+        set(trace, "code", "done", "answer → chat");
+      }
+    }
+
+    // A search finished: the excerpts go back to the model, which runs again once every search is back
+    function toolEvent(trace, ev) {
+      const { loop } = trace, db = trace.nodes.db, n = ev.chunks.length;
+      loop.searches++;
+      loop.pending = Math.max(0, loop.pending - 1);
+      const found = n ? `${n} chunk${n === 1 ? "" : "s"} · top ${ev.chunks[0].similarity}` : "nothing above 0.3";
+      set(trace, "db", "done", n ? `${n} chunk${n === 1 ? "" : "s"}` : "nothing found");
+      info(trace, "db", { ms: (db.ms || 0) + ev.ms, more: [...(db.more || []), `${quote(ev.query)} → ${found} · ${fmt(ev.ms)}`] });
+      trace.log.push({ node: "DB", kind: "db", text: `${quote(ev.query)} → ${n ? `${n} chunks` : "nothing above 0.3"}`, ms: ev.ms, chunks: ev.chunks });
+      if (!loop.pending) {
+        loop.active = "llm";
+        set(trace, "code", "running", "results → AI");
+        set(trace, "llm", "running");
+      }
+    }
+
+    function step(trace, ev) {
+      if (ev.node === "classify") {
+        set(trace, "classify", "done", `→ ${ev.route} · ${fmt(ev.ms)}`);
+        info(trace, "classify", { ms: ev.ms, more: [`route → ${ev.route}`, "one-word reply from the classifier LLM", `took ${fmt(ev.ms)}`] });
+        const skipped = ev.route === "other"
+          ? ["troubleshoot", "knowledge", "loop", ...LOOP_PARTS]
+          : ["off_topic", ev.route === "troubleshooting" ? "knowledge" : "troubleshoot"];
+        for (const id of skipped) set(trace, id, "skipped");
+        trace.log.push({ node: "classify", text: `route = ${ev.route}`, ms: ev.ms });
+      } else if (AGENTS[ev.node]) {
+        const { loop } = trace, n = ev.searches;
+        loop.active = null;
+        // The station is narrow: "provider/model:free" becomes "model"; details and the log keep the full name
+        const short = ev.model ? ev.model.split("/").pop().split(":")[0] : "no model";
+        set(trace, ev.node, "done", `${n} search${n === 1 ? "" : "es"} · ${short} · ${fmt(ev.ms)}`);
+        info(trace, ev.node, {
+          more: [`model ${ev.model}`, `${loop.llmCalls} ${LLM_NAME} call${loop.llmCalls === 1 ? "" : "s"}, ${n} search${n === 1 ? "" : "es"}`,
+                 ev.clarify ? "asked a clarifying question" : "answered from the runbooks it found", `took ${fmt(ev.ms)}`],
+        });
+        for (const id of ["loop", "code", "llm"]) set(trace, id, "done");
+        set(trace, "db", n ? "done" : "skipped", n ? undefined : "not needed");
+      } else if (ev.node === "review") {
+        const { status, issues } = ev.review;
+        set(trace, "review", "done");
+        const text = status === "retry" ? `not supported: ${issues.join("; ")} → rewriting once` : REVIEW_TEXT[status];
+        trace.log.push({ node: "review", text, ms: ev.ms, error: status === "flagged" });
+      } else if (ev.node === "revise") {
+        set(trace, "revise", "done");
+        trace.log.push({ node: "revise", text: `rewritten with the reviewer's notes · ${ev.sources.join(", ") || "no runbook"}`, ms: ev.ms });
+      } else {
+        set(trace, ev.node, "done", `fixed reply · ${fmt(ev.ms)}`);
+        info(trace, ev.node, { ms: ev.ms, more: ["fixed polite refusal", "no LLM call"] });
+        trace.log.push({ node: ev.node, text: "fixed reply", ms: ev.ms });
+      }
+    }
+
+    // ── Replay: run a finished message's events again on a copy, slowly enough to watch ──
+    const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+    async function replay(trace) {
+      if (replaying || !trace.events.length) return;
+      replaying = true;
+      const copy = newTrace(trace.question);
+      begin(copy);
+      selected = copy;
+      render();
+      for (const ev of [null, ...trace.events]) {
+        if (ev) apply(copy, ev);
+        render();
+        // Hold each running step long enough to watch the packet travel into it; streamed words go by quickly
+        await sleep(ev?.type === "running" ? 1300 : ["token", "reasoning"].includes(ev?.type) ? 25 : 450);
+        if (selected !== copy) break;  // another message was selected: stop
+      }
+      replaying = false;
+      if (selected === copy) selected = trace;
+      render();
+    }
+
+    replayButton.addEventListener("click", () => selected && replay(selected));
+
+    // ── Reading the Server-Sent Events stream ──
+    async function* readEvents(res) {
+      const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+      let buffer = "";
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) return;
+        buffer += value;
+        let end;
+        while ((end = buffer.indexOf("\n\n")) >= 0) {
+          const block = buffer.slice(0, end);
+          buffer = buffer.slice(end + 2);
+          if (block.startsWith("data: ")) yield JSON.parse(block.slice(6));
+        }
+      }
+    }
+
+    // ── Chat ──
+    function addRow(kind, text) {
+      document.getElementById("empty")?.remove();
+      const row = document.createElement("div");
+      row.className = "row " + kind;
+      row.innerHTML = `<span class="who">${kind === "user" ? "YOU" : "BOT"}</span><div class="text" dir="auto"></div><div class="meta"></div><span class="time"></span>`;
+      row.querySelector(".text").textContent = text;
+      row.querySelector(".time").textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      messages.appendChild(row);
+      messages.scrollTop = messages.scrollHeight;
+      return row;
+    }
+
+    function select(row, trace) {
+      messages.querySelector(".row.selected")?.classList.remove("selected");
+      row.classList.add("selected");
+      selected = trace;
+      render();
+    }
+
+    async function ask(text) {
+      addRow("user", text);
+      const trace = newTrace(text);
+      trace.live = true;  // no replay while the real run is still going
+      begin(trace);
+      const row = addRow("bot pending", "Working: sending...");
+      row.addEventListener("click", () => select(row, trace));
+      select(row, trace);
+      const meta = row.querySelector(".meta");
+      const update = () => { if (selected === trace) render(); };
+      send.disabled = true;
+
+      try {
+        const res = await fetch("/chat/stream", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.detail || "Server returned " + res.status);
+        }
+        let finished = false, draft = "", draftTurn = null;
+        const textEl = row.querySelector(".text");
+        const status = text => { row.classList.add("pending"); textEl.textContent = text; };
+        for await (const ev of readEvents(res)) {
+          trace.events.push(ev);  // kept for replay
+          apply(trace, ev);
+          update();
+          if (ev.type === "running") status(AGENTS[ev.node] ? `Working: ${AGENTS[ev.node]} is thinking...`
+            : ev.node === "review" ? "Working: checking the answer against the runbooks..."
+            : ev.node === "revise" ? "Working: rewriting the answer..." : `Working: ${ev.node}...`);
+          if (ev.type === "reasoning" && !draft) status("Working: thinking...");
+          if (ev.type === "token") {
+            // The reply appears word by word. A new turn starts a new draft (the last one was the model talking before a search).
+            if (ev.turn !== draftTurn) { draft = ""; draftTurn = ev.turn; }
+            draft += ev.text;
+            row.classList.remove("pending");
+            textEl.textContent = draft.replace(/^\s*CLARIFY:\s*/, "");
+            messages.scrollTop = messages.scrollHeight;
+          }
+          if (ev.type === "llm" && ev.action === "search") status(`Working: searching ${ev.queries.map(quote).join(", ")}...`);
+          if (ev.type === "tool" && !trace.loop.pending) status("Working: reading the runbooks...");
+          if (ev.type === "done") {
+            finished = true;
+            row.classList.remove("pending");
+            textEl.textContent = ev.answer;
+            const route = document.createElement("span");
+            route.className = "route";
+            route.textContent = ev.clarify ? `${ev.route} · clarifying question` : ev.route;
+            const searches = ev.searches ? `${ev.searches} search${ev.searches === 1 ? "" : "es"}` : "";
+            meta.replaceChildren(route, document.createTextNode(
+              " · " + [ev.sources.length ? ev.sources.join(", ") : "no runbook", searches, ev.model, fmt(ev.ms)].filter(Boolean).join(" · ")));
+            row.querySelector(".review")?.remove();
+            if (ev.review && REVIEW_TEXT[ev.review.status]) {
+              const review = document.createElement("div");
+              review.className = `review ${ev.review.status}`;
+              review.textContent = REVIEW_TEXT[ev.review.status];
+              if (ev.review.issues.length) {
+                const list = document.createElement("ul");
+                for (const issue of ev.review.issues) list.appendChild(Object.assign(document.createElement("li"), { textContent: issue }));
+                review.appendChild(list);
+              }
+              meta.after(review);
+            }
+          }
+          if (ev.type === "error") {
+            finished = true;
+            row.classList.replace("pending", "failed");
+            row.querySelector(".text").textContent = "Error: " + ev.detail;
+          }
+        }
+        if (!finished) throw new Error("Connection lost");
+      } catch (err) {
+        failRunning(trace, err.message);
+        update();
+        row.classList.replace("pending", "failed");
+        row.querySelector(".text").textContent = "Error: " + err.message;
+      } finally {
+        trace.live = false;
+        update();
+        send.disabled = false;
+        input.focus();
+      }
+    }
+
+    form.addEventListener("submit", e => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text || send.disabled) return;
+      input.value = "";
+      ask(text);
+    });
+
+    // ── Speech to text with Whisper ──
+    // The browser records the mic. Every second it posts everything recorded so far to /transcribe, where Whisper
+    // (on our server, nothing leaves it) turns it into text: that's the live transcript. Stop = one final pass.
+    const mic = document.getElementById("mic");
+    const voice = document.getElementById("voice");
+    const wave = voice.querySelector("canvas");
+    const live = voice.querySelector(".live");
+    const clock = voice.querySelector(".clock");
+    const LIVE_EVERY_MS = 500, MAX_SECONDS = 30, BAR = 4;  // BAR: px per wave bar, gap included
+    let recording = null;
+
+    // live: the fast preview model. language: skips Whisper's language detection, which costs as much as the transcription.
+    async function transcribe(chunks, { live = false, language = null } = {}) {
+      const body = new FormData();
+      body.append("audio", new Blob(chunks, { type: chunks[0].type }), "speech");
+      if (live) body.append("live", "true");
+      if (language) body.append("language", language);
+      const res = await fetch("/transcribe", { method: "POST", body });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || "Server returned " + res.status);
+      return data;
+    }
+
+    async function startRecording() {
+      // Created right in the click, before any await: made after the permission prompt, Chrome starts it
+      // suspended, and a suspended context reads pure silence, so the wave stays flat
+      const audio = new AudioContext();
+      let stream;
+      mic.disabled = true;  // a second click while the browser asks for the mic would start two recordings
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch {
+        audio.close();
+        input.placeholder = "Microphone blocked: allow it in the browser to speak";
+        return;
+      } finally {
+        mic.disabled = false;
+      }
+      await audio.resume();
+      const analyser = audio.createAnalyser();
+      analyser.fftSize = 1024;
+      audio.createMediaStreamSource(stream).connect(analyser);
+      const r = { stream, audio, analyser, recorder: new MediaRecorder(stream), chunks: [], levels: [], started: performance.now(), busy: false };
+      r.recorder.ondataavailable = e => { if (e.data.size) r.chunks.push(e.data); };
+      r.recorder.start(250);  // a chunk every 250 ms, so a live pass always has fresh audio
+      recording = r;
+      // Which device the browser picked: a flat wave usually means it's not the mic you're talking into
+      live.dataset.mic = stream.getAudioTracks()[0]?.label || "the default mic";
+
+      mic.classList.add("listening");
+      mic.setAttribute("aria-label", "Stop and transcribe");
+      live.textContent = "";
+      voice.classList.add("on");
+
+      r.timer = setInterval(() => {
+        if (r.busy || !r.chunks.length) return;  // skip a tick while Whisper is still on the last one
+        r.busy = true;
+        const seconds = (performance.now() - r.started) / 1000;
+        transcribe([...r.chunks], { live: true, language: r.language })
+          .then(data => {
+            if (recording === r) live.textContent = data.text;
+            // Lock the language once there are real words in enough audio, so later passes skip detecting it
+            if (!r.language && data.text && seconds >= 2) r.language = data.language;
+          })
+          .catch(() => {})
+          .finally(() => { r.busy = false; });
+      }, LIVE_EVERY_MS);
+      drawWave(r);
+    }
+
+    // The mic level (RMS) scrolls right to left as bars: tall while you talk, flat when quiet
+    function drawWave(r) {
+      const dpr = window.devicePixelRatio || 1;
+      const w = wave.clientWidth, h = wave.clientHeight;
+      wave.width = w * dpr; wave.height = h * dpr;
+      const ctx = wave.getContext("2d");
+      ctx.scale(dpr, dpr);
+      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--accent");
+      const samples = new Float32Array(r.analyser.fftSize);
+      let lastBar = 0;
+
+      const frame = now => {
+        if (now - lastBar > 50) {
+          lastBar = now;
+          r.analyser.getFloatTimeDomainData(samples);
+          const rms = Math.sqrt(samples.reduce((sum, s) => sum + s * s, 0) / samples.length);
+          // Square root lifts quiet mics: speech is often only 0.01-0.05 RMS, which would draw under a pixel
+          r.levels.push(Math.min(1, Math.sqrt(rms) * 2.5));
+          if (r.levels.length > w / BAR) r.levels.shift();
+        }
+        ctx.clearRect(0, 0, w, h);
+        r.levels.forEach((level, i) => {
+          const barH = Math.max(2, level * h);
+          ctx.fillRect(w - (r.levels.length - i) * BAR, (h - barH) / 2, BAR - 1.5, barH);
+        });
+        const seconds = Math.floor((now - r.started) / 1000);
+        clock.textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+        if (seconds >= MAX_SECONDS) stopRecording();
+        else r.frame = requestAnimationFrame(frame);
+      };
+      r.frame = requestAnimationFrame(frame);
+    }
+
+    async function stopRecording() {
+      const r = recording;
+      if (!r) return;
+      recording = null;
+      clearInterval(r.timer);
+      cancelAnimationFrame(r.frame);
+      await new Promise(done => { r.recorder.onstop = done; r.recorder.stop(); });  // flushes the last chunk
+      r.stream.getTracks().forEach(t => t.stop());
+      r.audio.close();
+
+      mic.classList.remove("listening");
+      mic.setAttribute("aria-label", "Speak your question");
+      mic.disabled = true;
+      clock.textContent = "transcribing ...";
+      try {
+        // The text lands in the input so it can be checked before sending
+        if (r.chunks.length) input.value = (await transcribe(r.chunks, { language: r.language })).text;
+      } catch (err) {
+        input.placeholder = "Couldn't transcribe: " + err.message;
+      } finally {
+        voice.classList.remove("on");
+        mic.disabled = false;
+        input.focus();
+      }
+    }
+
+    if (navigator.mediaDevices?.getUserMedia && window.MediaRecorder) {
+      mic.addEventListener("click", () => recording ? stopRecording() : startRecording());
+      mic.hidden = false;
+    }
+
+    for (const button of document.querySelectorAll(".empty button")) {
+      button.addEventListener("click", () => { if (!send.disabled) ask(button.textContent); });
+    }
+
+    // ── The orb on the empty chat: wavy rings that lean and bulge toward the cursor ──
+    function startOrb(canvas) {
+      const SIZE = 168, R = 46, RINGS = 16, POINTS = 120;
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = canvas.height = SIZE * dpr;
+      const ctx = canvas.getContext("2d");
+      ctx.scale(dpr, dpr);
+      const target = { x: 0, y: 0, pull: 0 }, cur = { x: 0, y: 0, pull: 0 };
+      let t = 0, last = performance.now();
+
+      function onMove(e) {
+        const r = canvas.getBoundingClientRect();
+        const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+        const dist = Math.hypot(dx, dy) || 1;
+        target.pull = Math.max(0, 1 - dist / 420);  // 1 on the orb, 0 when far away
+        target.x = dx / dist;
+        target.y = dy / dist;
+      }
+      const onLeave = () => { target.pull = 0; };
+      window.addEventListener("pointermove", onMove);
+      document.addEventListener("pointerleave", onLeave);
+
+      function frame(now) {
+        if (!canvas.isConnected) {  // the first message removed the empty state: stop
+          window.removeEventListener("pointermove", onMove);
+          document.removeEventListener("pointerleave", onLeave);
+          return;
+        }
+        const dt = Math.min(0.05, (now - last) / 1000);
+        last = now;
+        for (const k of ["x", "y", "pull"]) cur[k] += (target[k] - cur[k]) * 0.025;  // slow follow
+        t += dt * (0.8 + cur.pull * 0.5);  // spins up a little as the cursor gets close
+        draw();
+        requestAnimationFrame(frame);
+      }
+
+      function draw() {
+        const c = SIZE / 2;
+        // The orb never points straight at the cursor: its aim drifts around it on slow, unrelated waves
+        const aim = Math.atan2(cur.y, cur.x) + 1.1 * Math.sin(t * 0.43) + 0.7 * Math.sin(t * 0.17 + 2);
+        ctx.clearRect(0, 0, SIZE, SIZE);
+        const glow = ctx.createRadialGradient(c, c, 0, c, c, c);
+        glow.addColorStop(0, `rgba(79, 232, 195, ${0.10 + cur.pull * 0.12})`);
+        glow.addColorStop(1, "rgba(79, 232, 195, 0)");
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, SIZE, SIZE);
+        ctx.globalCompositeOperation = "lighter";
+        ctx.lineWidth = 1;
+        for (let i = 0; i < RINGS; i++) {
+          const depth = i / (RINGS - 1);  // 0 = back ring, 1 = front ring
+          // Front rings shift further toward the cursor than back rings, so the orb seems to lean
+          const lean = cur.pull * (1 + depth * 4);
+          const ox = c + Math.cos(aim) * lean, oy = c + Math.sin(aim) * lean;
+          // Each ring answers on its own: its own direction offset and its own strength, both wandering
+          const ringAim = aim + 0.8 * Math.sin(t * 0.31 + i * 1.7);
+          const ringPull = cur.pull * (0.5 + 0.5 * Math.sin(t * 0.53 + i * 0.9) ** 2);
+          const centre = 1 - Math.abs(depth - 0.5) * 2;
+          ctx.strokeStyle = `rgba(79, 232, 195, ${0.10 + centre * 0.45})`;
+          ctx.beginPath();
+          for (let p = 0; p <= POINTS; p++) {
+            const a = (p / POINTS) * Math.PI * 2;
+            let off = 5 * Math.sin(3 * a + t + i * 0.35) + 3.5 * Math.sin(5 * a - t * 1.4 + i * 0.6);
+            const toward = Math.atan2(Math.sin(a - ringAim), Math.cos(a - ringAim));  // angle from the bulge side, -π..π
+            off += ringPull * 7 * Math.exp(-(toward * toward) / 0.9);
+            const r = R + (i - RINGS / 2) * 0.9 + off;
+            const x = ox + r * Math.cos(a), y = oy + r * Math.sin(a);
+            p ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+          }
+          ctx.stroke();
+        }
+        ctx.globalCompositeOperation = "source-over";
+      }
+
+      if (matchMedia("(prefers-reduced-motion: reduce)").matches) draw();
+      else requestAnimationFrame(frame);
+    }
+    startOrb(document.getElementById("orb"));
+
+    // ── Drag the gutter between chat and architecture (25–75%), remembered per browser ──
+    (function () {
+      const page = document.querySelector(".page"), handle = document.getElementById("splitter");
+      const KEY = "devops-ai-split", MIN = 25, MAX = 75;
+      const apply = pct => {
+        pct = Math.min(MAX, Math.max(MIN, pct));
+        page.style.setProperty("--split", pct + "%");
+        handle.setAttribute("aria-valuenow", Math.round(pct));
+        return pct;
+      };
+      const save = pct => { try { localStorage.setItem(KEY, pct); } catch {} };
+      try { const stored = parseFloat(localStorage.getItem(KEY)); if (stored) apply(stored); } catch {}
+
+      handle.addEventListener("pointerdown", e => {
+        handle.setPointerCapture(e.pointerId);
+        document.body.classList.add("dragging");
+      });
+      handle.addEventListener("pointermove", e => {
+        if (!handle.hasPointerCapture(e.pointerId)) return;
+        const r = page.getBoundingClientRect(), pad = parseFloat(getComputedStyle(page).paddingLeft);
+        apply(((e.clientX - r.left - pad) / (r.width - 2 * pad)) * 100);
+      });
+      const stop = e => {
+        if (!handle.hasPointerCapture(e.pointerId)) return;
+        handle.releasePointerCapture(e.pointerId);
+        document.body.classList.remove("dragging");
+        save(parseFloat(page.style.getPropertyValue("--split")) || 50);
+      };
+      handle.addEventListener("pointerup", stop);
+      handle.addEventListener("pointercancel", stop);
+      handle.addEventListener("dblclick", () => save(apply(50)));
+      handle.addEventListener("keydown", e => {
+        const step = { ArrowLeft: -2, ArrowRight: 2 }[e.key];
+        if (!step) return;
+        e.preventDefault();
+        save(apply((parseFloat(page.style.getPropertyValue("--split")) || 50) + step));
+      });
+    })();
+
+    render();
+    input.focus();
+  </script>
+</body>
+</html>

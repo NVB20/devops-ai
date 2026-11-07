@@ -1,0 +1,86 @@
+# The chatbot (step 09 image: agents, /health, /metrics).
+#   readiness: /health, so it gets no traffic while Postgres is down or the runbooks aren't loaded yet
+#   liveness:  only "is the port open", so a database outage doesn't make Kubernetes restart a healthy app
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app
+  namespace: devops-ai
+  labels:
+    app.kubernetes.io/name: devops-ai-app
+    app.kubernetes.io/part-of: devops-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: devops-ai-app
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: devops-ai-app
+        app.kubernetes.io/part-of: devops-ai
+      annotations:
+        # For a Prometheus in the cluster that discovers pods by annotation (step 09 scrapes the compose app)
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: /metrics
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: app
+          image: devops-ai-app:09
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: devops-ai
+            - secretRef:
+                name: openrouter
+                optional: true  # not needed with LLM_PROVIDER: ollama
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: postgres
+                  key: DATABASE_URL
+          # Loading the embedding model takes a few seconds: give it up to 2 minutes before liveness starts
+          startupProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 5
+            failureThreshold: 24
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 6
+          livenessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 20
+          resources:
+            # Whisper (voice input) loads ~0.5-1 GB on the first voice message
+            requests: {cpu: 250m, memory: 768Mi}
+            limits: {memory: 3Gi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app
+  namespace: devops-ai
+  labels:
+    app.kubernetes.io/name: devops-ai-app
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: devops-ai-app
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      nodePort: 30082  # kind-config.yaml publishes it on 127.0.0.1:8082

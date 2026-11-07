@@ -3,3 +3,10 @@ venv/
 __pycache__/
 *.pyc
 .claude/
+# Terraform (step 11): state holds the database password and the deployer key
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
+11-Terraform-Floci/infra/kubeconfig

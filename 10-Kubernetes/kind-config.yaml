@@ -1,0 +1,13 @@
+# A one-node kind cluster for step 10. The chatbot's NodePort (30082) is published on 127.0.0.1:8082
+# (8081 is the compose app, 8000 uvicorn).
+#   kind create cluster --config 10-Kubernetes/kind-config.yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: devops-ai
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 30082
+        hostPort: 8082
+        listenAddress: "127.0.0.1"
+        protocol: TCP

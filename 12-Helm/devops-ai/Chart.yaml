@@ -1,0 +1,9 @@
+apiVersion: v2
+name: devops-ai
+description: The DevOps AI chatbot (RAG over our runbooks with LangGraph agents), its runbook ingest, and optionally its pgvector database
+type: application
+# The chart's own version: bump it on any change to the chart
+version: 0.2.0
+# The app step the chart deploys by default (image tag): the step 14 image, whose answers are reviewed
+appVersion: "14"
+keywords: [devops, rag, pgvector, langgraph]

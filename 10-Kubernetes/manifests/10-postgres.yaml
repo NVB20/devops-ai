@@ -1,0 +1,104 @@
+# Postgres + pgvector, the knowledge base. One replica with its own volume (kind's default StorageClass).
+# The credentials are the local defaults from docker-compose.yml: fine on kind, never in a shared cluster.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres
+  namespace: devops-ai
+type: Opaque
+stringData:
+  POSTGRES_USER: devops
+  POSTGRES_PASSWORD: devops
+  POSTGRES_DB: knowledge
+  DATABASE_URL: postgresql://devops:devops@db:5432/knowledge
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init
+  namespace: devops-ai
+data:
+  # Runs once, on first start of an empty data volume (same as db/init.sql)
+  init.sql: |
+    CREATE EXTENSION IF NOT EXISTS vector;
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+  namespace: devops-ai
+  labels:
+    app.kubernetes.io/name: postgres
+spec:
+  clusterIP: None  # headless: the StatefulSet's stable DNS name
+  selector:
+    app.kubernetes.io/name: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: devops-ai
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/part-of: devops-ai
+spec:
+  serviceName: db
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: postgres
+        app.kubernetes.io/part-of: devops-ai
+    spec:
+      containers:
+        - name: postgres
+          image: pgvector/pgvector:pg17
+          ports:
+            - name: postgres
+              containerPort: 5432
+          envFrom:
+            - secretRef:
+                name: postgres
+          env:
+            - name: PGDATA  # a subfolder: the volume's root has lost+found, which initdb refuses
+              value: /var/lib/postgresql/data/pgdata
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+            periodSeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 3
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {memory: 1Gi}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: init
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+      volumes:
+        - name: init
+          configMap:
+            name: postgres-init
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi

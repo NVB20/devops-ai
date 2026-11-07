@@ -1,0 +1,56 @@
+groups:
+  - name: devops-ai
+    rules:
+      - alert: DevOpsAIDown
+        expr: up{job="devops-ai"} == 0
+        for: 1m
+        labels: {severity: critical}
+        annotations:
+          summary: The chatbot doesn't answer /metrics
+          description: Prometheus couldn't scrape app:8000 for a minute. Check `docker compose ps` and the app logs.
+
+      # The container healthcheck calls /health every 10 s, and /health sets this gauge: -1 when Postgres is down
+      - alert: KnowledgeBaseDown
+        expr: devops_ai_kb_chunks < 0
+        for: 1m
+        labels: {severity: critical}
+        annotations:
+          summary: The knowledge base (Postgres) is down
+          description: /health can't run SELECT count(*) FROM chunks. Every question will fail.
+
+      - alert: KnowledgeBaseEmpty
+        expr: devops_ai_kb_chunks == 0
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: The knowledge base has no runbook chunks
+          description: Postgres is up but the chunks table is empty. Run the ingest again.
+
+      - alert: HighQuestionErrorRate
+        expr: |
+          sum(rate(devops_ai_questions_total{outcome="error"}[5m]))
+            / sum(rate(devops_ai_questions_total[5m])) > 0.2
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: More than 20% of questions fail
+          description: "{{ $value | humanizePercentage }} of questions ended in an error over the last 5 minutes. Usually the LLM (rate limit, key, Ollama down)."
+
+      - alert: SlowAnswers
+        expr: |
+          histogram_quantile(0.95, sum by (le) (rate(devops_ai_question_duration_seconds_bucket[10m]))) > 60
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: 95% of answers take over a minute
+          description: "p95 answer time is {{ $value | humanizeDuration }}. Check the LLM call times on the dashboard."
+
+      - alert: ManyUnansweredQuestions
+        expr: |
+          sum(rate(devops_ai_questions_total{outcome="no_answer"}[30m]))
+            / sum(rate(devops_ai_questions_total{outcome=~"answered|no_answer"}[30m])) > 0.5
+        for: 15m
+        labels: {severity: info}
+        annotations:
+          summary: Half the DevOps questions find no runbook
+          description: The knowledge base may be missing runbooks for what engineers ask about.
