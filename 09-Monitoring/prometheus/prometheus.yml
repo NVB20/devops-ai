@@ -1,0 +1,14 @@
+# Scrapes the chatbot every 15 s and evaluates the alert rules in alerts.yml.
+# The firing alerts show at http://127.0.0.1:9090/alerts (no Alertmanager: nothing is sent anywhere yet).
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - alerts.yml
+
+scrape_configs:
+  - job_name: devops-ai
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["app:8000"]

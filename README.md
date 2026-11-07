@@ -10,6 +10,12 @@ My work on the [DevOps Mentor–Mentee project](https://github.com/yehudasho/din
 | 04 | [04-LangGraph](./04-LangGraph) – LangGraph routes each question (troubleshooting / knowledge / other) | ✅ |
 | 05 | [05-Agents](./05-Agents) – a Troubleshooting Agent and a Knowledge Agent that search the runbooks themselves | ✅ |
 | 06 | [06-Deploy](./06-Deploy) – tested retrieval, `/health` that checks the database, everything in Docker | ✅ |
+| 07 | [07-n8n-Ollama](./07-n8n-Ollama) – a local LLM (Ollama) as an alternative to OpenRouter, and an n8n chat workflow | 🚧 first run pending |
+| 08 | [08-CICD](./08-CICD) – GitHub Actions: tests on a real pgvector, config checks, image pushed to GHCR | 🚧 first run pending |
+| 09 | [09-Monitoring](./09-Monitoring) – `/metrics`, Prometheus with alert rules, a Grafana dashboard | 🚧 first run pending |
+| 10 | [10-Kubernetes](./10-Kubernetes) – Postgres, the ingest Job and the chatbot on a local kind cluster | 🚧 first run pending |
+
+Next, following the project plan: Helm (11), ArgoCD (12), Terraform/AWS (13), the full platform (14).
 
 ## Setup (once)
 
@@ -158,6 +164,105 @@ docker compose exec app python -m pytest tests -p no:cacheprovider   # inside th
 - `test_health.py`: `/health` up, and down (a real connection attempt to a host that can't exist).
 - `test_ingest.py`: ingest exits with an error, before touching the database, when it finds no runbooks (so compose doesn't start the app with an empty knowledge base).
 - `test_retrieval.py`: 30 known questions, one per runbook, worded the way an engineer asks. Each must find its runbook as the **first** search result, through the real embedding model and database, with no LLM. It also checks that every runbook has a question, that "pods are pending and a node is NotReady" finds both runbooks, and that off-topic questions find nothing. Skipped when Postgres isn't reachable.
+
+### Local LLM and n8n (step 07)
+
+The step 06 app, plus a switch for which LLM answers, and an n8n workflow in front of it.
+
+**Ollama instead of OpenRouter.** Both speak the OpenAI API, so only the base URL, key and model change. Add to `.env`:
+
+```
+LLM_PROVIDER=ollama          # openrouter (default) or ollama
+OLLAMA_MODEL=llama3.2        # any model you pulled that supports tools: ollama pull llama3.2
+# OLLAMA_BASE_URL=http://127.0.0.1:11434/v1   # default when running uvicorn; compose uses host.docker.internal
+```
+
+Ollama runs on your machine, not in compose: the containers reach it at `host.docker.internal:11434`. If they can't, set the Windows environment variable `OLLAMA_HOST=0.0.0.0` and restart Ollama. A 3B model on the CPU is slower than OpenRouter (the LLM timeout is 180 s instead of 60 s) and follows the answer format less strictly. `/health` now also says which LLM is in use (without calling it), and the chat UI labels the LLM station with it.
+
+**n8n.** Start step 07 (from the repo root):
+
+```powershell
+docker compose -f docker-compose.yml -f 07-n8n-Ollama/compose.yml up -d --build
+```
+
+`07-n8n-Ollama/compose.yml` only adds to the root file: the app and ingest are built from `07-n8n-Ollama/Dockerfile`, and there's an `n8n` service. On every start n8n imports `07-n8n-Ollama/n8n/devops-ai-chat.json` (same id, so it updates instead of duplicating):
+
+```
+When chat message received ──► Ask the DevOps AI API (POST http://app:8000/chat) ──► Answer with sources
+```
+
+Open http://127.0.0.1:5678, create the owner account (first time only), open **DevOps AI chat** and click **Open chat** to try it. To get its public chat page, activate the workflow; the Chat Trigger node shows the URL.
+
+Tests: `test_provider.py` checks the switch (default OpenRouter, Ollama's URL and model, a typo fails at startup).
+
+### CI/CD (step 08)
+
+`.github/workflows/ci.yml` runs on every pull request and every push to `main`. Details in [08-CICD](./08-CICD).
+
+### Monitoring (step 09)
+
+The step 07 app with a `/metrics` endpoint, plus Prometheus and Grafana:
+
+```powershell
+docker compose -f docker-compose.yml -f 07-n8n-Ollama/compose.yml -f 09-Monitoring/compose.yml up -d --build
+```
+
+| URL | What |
+|-----|------|
+| http://127.0.0.1:8081/metrics | The raw metrics |
+| http://127.0.0.1:9090/alerts | Prometheus: the alert rules and which are firing |
+| http://127.0.0.1:3000 | Grafana (admin / admin, change with `GRAFANA_ADMIN_PASSWORD` in `.env`), opens on the **DevOps AI** dashboard |
+
+What the app counts (all start with `devops_ai_`):
+
+- `questions_total{endpoint, route, outcome}`: outcome is `answered` (cites a runbook), `no_answer`, `clarify`, `off_topic` or `error`. `question_duration_seconds` is how long the whole answer took.
+- `llm_call_duration_seconds{provider, kind}` and `llm_errors_total`: `kind` is `classify` or `agent` (one turn of the agent loop).
+- `searches_total{agent}`, `search_duration_seconds`, `search_top_similarity`: how good the best match of each search was (0 when nothing matched). Low values show what the runbooks don't cover.
+- `kb_chunks`: the chunk count `/health` last saw, -1 when Postgres is down. The container healthcheck keeps it fresh.
+- `http_requests_total{method, path, status}` and `http_request_duration_seconds`: `path` is the route (`/search`), never the URL, so questions don't create new series.
+
+Alert rules (`09-Monitoring/prometheus/alerts.yml`): app down, knowledge base down or empty, over 20% of questions failing, p95 answer time over a minute, over half the DevOps questions finding no runbook. They show in Prometheus; nothing is sent anywhere yet (no Alertmanager).
+
+Tests: `test_metrics.py` checks what an answered, off-topic, clarifying, unanswered and failed question each add, and that `/search?q=...` stays one series.
+
+### Kubernetes (step 10)
+
+The step 09 image on a local [kind](https://kind.sigs.k8s.io) cluster: Postgres as a StatefulSet with its own volume, the ingest as a Job, the chatbot as a Deployment. From the repo root:
+
+```powershell
+kind create cluster --config 10-Kubernetes/kind-config.yaml
+docker build -f 09-Monitoring/Dockerfile -t devops-ai-app:09 .
+kind load docker-image devops-ai-app:09 --name devops-ai
+
+kubectl apply -f 10-Kubernetes/manifests/00-namespace.yaml
+kubectl -n devops-ai create secret generic openrouter --from-literal=OPENROUTER_API_KEY=<your key>
+kubectl apply -f 10-Kubernetes/manifests/
+kubectl -n devops-ai get pods -w     # postgres-0 Running, ingest Completed, app 1/1 Ready
+```
+
+The chat is at http://127.0.0.1:8082/ui (kind publishes the app's NodePort 30082 there).
+
+| File | What |
+|---|---|
+| `kind-config.yaml` | One node, NodePort 30082 published on 127.0.0.1:8082 |
+| `00-namespace.yaml` | Everything lives in `devops-ai` |
+| `10-postgres.yaml` | pgvector StatefulSet + 1 Gi volume, headless Service `db`, the init SQL, the local credentials |
+| `20-config.yaml` | `LLM_PROVIDER` and the models. The OpenRouter key is the `openrouter` Secret above, never in Git |
+| `30-ingest-job.yaml` | Loads the runbooks; retries while Postgres starts |
+| `40-app.yaml` | The chatbot and its NodePort Service |
+
+The app's **readiness** probe is `/health`: no traffic while Postgres is down or the runbooks aren't loaded. Its **liveness** probe only checks the port, so a database outage doesn't make Kubernetes restart a healthy app. Both containers run as a non-root user.
+
+Useful checks:
+
+```powershell
+kubectl -n devops-ai logs job/ingest
+kubectl -n devops-ai scale statefulset postgres --replicas=0   # app turns 0/1 (not ready), but isn't restarted
+kubectl -n devops-ai scale statefulset postgres --replicas=1   # and back to 1/1
+kind delete cluster --name devops-ai
+```
+
+To use Ollama instead, set `LLM_PROVIDER: ollama` in `20-config.yaml`, apply it, and `kubectl -n devops-ai rollout restart deployment app`. To pull the image from GHCR (step 08) instead of loading it, make the package public (or add an image pull secret) and set `image: ghcr.io/nvb20/devops-ai-app:latest`.
 
 ## Run a step (PowerShell)
 

@@ -1,0 +1,46 @@
+# Step 07 on top of the root docker-compose.yml: the step 07 app (OpenRouter or Ollama) and n8n.
+# Run from the repo root:
+#   docker compose -f docker-compose.yml -f 07-n8n-Ollama/compose.yml up -d --build
+# Relative paths below are relative to the repo root (the first file's folder), not to this file.
+
+x-step07: &step07
+  build:
+    context: .
+    dockerfile: 07-n8n-Ollama/Dockerfile
+  image: devops-ai-app:07
+  environment:
+    LLM_PROVIDER: ${LLM_PROVIDER:-openrouter}
+    OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434/v1}
+    OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2}
+  # Ollama runs on the host, not in compose. Docker Desktop already knows host.docker.internal; this adds it on Linux.
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+
+services:
+  ingest:
+    <<: *step07
+
+  app:
+    <<: *step07
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: devops-ai-n8n
+    ports:
+      - "127.0.0.1:5678:5678"
+    environment:
+      GENERIC_TIMEZONE: Asia/Jerusalem
+      TZ: Asia/Jerusalem
+      N8N_DIAGNOSTICS_ENABLED: "false"
+    # Load (or refresh) the chat workflow, then start n8n. Same id every time, so it's updated, not duplicated.
+    entrypoint: ["/bin/sh", "-c", "n8n import:workflow --input=/workflows/devops-ai-chat.json && exec n8n start"]
+    volumes:
+      - n8ndata:/home/node/.n8n
+      - ./07-n8n-Ollama/n8n:/workflows:ro
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  n8ndata:

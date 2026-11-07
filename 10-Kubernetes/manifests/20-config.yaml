@@ -1,0 +1,14 @@
+# What the chatbot reads besides the secrets. Switch to the local model with LLM_PROVIDER: ollama.
+# The OpenRouter key is a Secret you create yourself, so it never lands in Git:
+#   kubectl -n devops-ai create secret generic openrouter --from-literal=OPENROUTER_API_KEY=sk-or-...
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: devops-ai
+  namespace: devops-ai
+data:
+  LLM_PROVIDER: openrouter
+  OPENROUTER_MODEL: openrouter/free
+  # Ollama on your machine, outside the cluster. Docker Desktop resolves host.docker.internal inside kind too.
+  OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
+  OLLAMA_MODEL: llama3.2
