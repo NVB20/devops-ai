@@ -16,7 +16,9 @@ My work on the [DevOps Mentor–Mentee project](https://github.com/yehudasho/din
 | 10 | [10-Kubernetes](./10-Kubernetes) – Postgres, the ingest Job and the chatbot on a local kind cluster | 🚧 first run pending |
 | 11 | [11-Terraform-Floci](./11-Terraform-Floci) – Terraform builds the AWS side (VPC, S3, ECR, RDS with pgvector, EKS) on Floci, a local AWS emulator, and deploys the chatbot there | 🚧 first run pending |
 
-Next, following the project plan: Helm (12), ArgoCD (13), the full platform (14).
+| 12 | [12-Helm](./12-Helm) – one Helm chart for the chatbot, with values for kind (Postgres in the cluster) and for Floci's EKS (RDS, ECR), installed by Terraform there | 🚧 first run pending |
+
+Next, following the project plan: ArgoCD (13), the full platform (14).
 
 ## Setup (once)
 
@@ -313,6 +315,55 @@ How the Floci parts fit together (all set in `11-Terraform-Floci/compose.yml`):
 What's emulated, not real: security groups and routes are recorded but not enforced, IAM policies aren't enforced, and there's no cost or AWS limit. It shows the Terraform works and the pieces connect; it doesn't prove it on AWS. To use Ollama from the cluster, `-var llm_provider=ollama` (whether pods reach your host's Ollama through Floci's DNS isn't tested).
 
 CI runs `terraform fmt -check` and `terraform validate` on both stages (no Floci needed).
+
+### Helm (step 12)
+
+Steps 10 and 11 describe the same app twice: plain YAML for kind, Terraform resources for Floci's EKS. Step 12 replaces both with one chart, `12-Helm/devops-ai`, and a values file per environment.
+
+| File | What |
+|---|---|
+| `devops-ai/values.yaml` | The defaults: image, LLM, database, resources, probes |
+| `values-kind.yaml` | Postgres in the cluster, the image loaded into kind, NodePort 30082 |
+| `values-floci.yaml` | No Postgres (RDS), the image from Floci's ECR, ClusterIP |
+| `floci/` | Terraform that installs the chart on Floci's EKS (`helm_release`), with the ECR repository and the RDS URL from step 11's infra stage |
+
+The chart renders: the app Deployment and Service, a ConfigMap (LLM settings), a Secret for `DATABASE_URL` and one for the OpenRouter key, the ingest Job, and with `postgres.enabled` a pgvector StatefulSet with its volume.
+
+**On kind** (the cluster and image from step 10; if step 10's manifests are still applied, `kubectl delete namespace devops-ai` first):
+
+```powershell
+helm upgrade --install devops-ai 12-Helm/devops-ai -n devops-ai --create-namespace `
+  -f 12-Helm/values-kind.yaml --set-string llm.openrouterApiKey=<your key> `
+  --wait --wait-for-jobs --timeout 10m
+```
+
+The chat is at http://127.0.0.1:8082/ui. `--wait --wait-for-jobs` returns only once the runbooks are loaded and the app is ready.
+
+**On Floci's EKS** (after step 11's infra stage and image push; it replaces step 11's app stage, so `terraform destroy` that one first):
+
+```powershell
+$env:TF_VAR_openrouter_api_key = "<your key>"
+terraform -chdir=12-Helm/floci init
+terraform -chdir=12-Helm/floci apply
+kubectl --kubeconfig 11-Terraform-Floci/infra/kubeconfig -n devops-ai port-forward svc/devops-ai 8083:8000
+```
+
+**Day 2** (kind shown; on Floci change `image_tag` and apply):
+
+```powershell
+helm upgrade devops-ai 12-Helm/devops-ai -n devops-ai -f 12-Helm/values-kind.yaml --reuse-values --set image.tag=10 --wait --wait-for-jobs
+helm -n devops-ai history devops-ai      # every revision, with its chart and app version
+helm -n devops-ai rollback devops-ai     # back to the previous revision
+```
+
+How it behaves:
+
+- **The ingest Job** is named after a hash of what it depends on: the image (which holds `knowledge-base/`), the database URL and its settings. It runs again exactly when one of those changes, and is left alone otherwise. Changing a Job in place is refused by Kubernetes, so a new name is what makes a rerun possible. It's a plain resource, not a Helm hook: hooks run before the database Secret exists or after the app is ready, and the app can't be ready before the runbooks are loaded. This also works the same under ArgoCD (step 13).
+- **Changing the model, key or database URL restarts the pods**, through checksum annotations on the ConfigMap and Secrets.
+- **Wrong settings fail at render time**, not as crashing pods: no database or two of them, an unknown `llm.provider`, a key given both ways.
+- **Secrets stay out of Git:** pass the key with `--set-string` (or `TF_VAR_openrouter_api_key`), or point `llm.existingSecret` / `database.existingSecret` at Secrets you created.
+
+CI lints the chart, renders it with both values files, checks the result against the Kubernetes schema, and checks the behaviour above: Postgres only on kind, the ingest Job name stable unless the image changes, and the render-time errors.
 
 ## Run a step (PowerShell)
 

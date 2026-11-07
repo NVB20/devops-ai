@@ -1,6 +1,6 @@
 # Step 08: test every pull request and push, and publish the chatbot image to GHCR from main.
 #   test    – the tests of steps 06, 07 and 09 against a real Postgres + pgvector, after a real ingest
-#   configs – compose files, Prometheus config and alert rules, Kubernetes manifests, Terraform (fmt + validate)
+#   configs – compose files, Prometheus config and alert rules, Kubernetes manifests, Helm chart, Terraform (fmt + validate)
 #   image   – builds the latest step's image; on main it's pushed as ghcr.io/<owner>/devops-ai-app:{latest,sha-xxxxxxx}
 # See 08-CICD/README.md.
 name: CI
@@ -100,15 +100,44 @@ jobs:
           docker run --rm -v "$PWD/10-Kubernetes:/k8s:ro" ghcr.io/yannh/kubeconform:latest \
             -strict -summary /k8s/manifests
 
+      - uses: azure/setup-helm@v4
+
+      # Step 12: lint the chart, render it for kind and for Floci, and check the result against the Kubernetes schema
+      - name: Helm chart
+        run: |
+          chart=12-Helm/devops-ai
+          helm lint --strict $chart -f 12-Helm/values-kind.yaml
+          helm lint --strict $chart -f 12-Helm/values-floci.yaml --set database.url=postgresql://u:p@db:5432/knowledge
+          helm template devops-ai $chart -n devops-ai -f 12-Helm/values-kind.yaml > kind.yaml
+          helm template devops-ai $chart -n devops-ai -f 12-Helm/values-floci.yaml \
+            --set database.url=postgresql://u:p@db:5432/knowledge --set-string llm.openrouterApiKey=x > floci.yaml
+          for f in kind.yaml floci.yaml; do
+            docker run --rm -i ghcr.io/yannh/kubeconform:latest -strict -summary - < $f
+          done
+          # kind runs Postgres in the cluster, Floci uses RDS
+          # (bash -e ignores a failing "! cmd", so the negative checks fail the step themselves)
+          grep -q "kind: StatefulSet" kind.yaml
+          if grep -q "kind: StatefulSet" floci.yaml; then echo "Floci values render a Postgres"; exit 1; fi
+          # The ingest Job keeps its name while nothing it depends on changes, and gets a new one when the image does
+          job() { helm template devops-ai $chart -f 12-Helm/values-kind.yaml "$@" | grep -o "devops-ai-ingest-[0-9a-f]*" | head -1; }
+          [ "$(job)" = "$(job --set replicaCount=2)" ]
+          [ "$(job)" != "$(job --set image.tag=10)" ]
+          # Settings that can't work stop at render time
+          if helm template devops-ai $chart 2> err.txt; then echo "rendered without a database"; exit 1; fi
+          grep -q "exactly one of postgres.enabled" err.txt
+          if helm template devops-ai $chart -f 12-Helm/values-kind.yaml --set llm.provider=openai 2> err.txt; then echo "rendered a bad provider"; exit 1; fi
+          grep -q "llm.provider must be" err.txt
+
       - uses: hashicorp/setup-terraform@v3
 
-      # Both stages of step 11. validate needs no Floci and no state: it checks the code and the provider schemas.
+      # The Terraform of steps 11 and 12. validate needs no Floci and no state: it checks the code and the provider schemas.
       - name: Terraform
         run: |
           terraform fmt -check -recursive -diff 11-Terraform-Floci
-          for stage in infra app; do
-            terraform -chdir=11-Terraform-Floci/$stage init -backend=false -input=false
-            terraform -chdir=11-Terraform-Floci/$stage validate
+          terraform fmt -check -recursive -diff 12-Helm
+          for root in 11-Terraform-Floci/infra 11-Terraform-Floci/app 12-Helm/floci; do
+            terraform -chdir=$root init -backend=false -input=false
+            terraform -chdir=$root validate
           done
 
   image:

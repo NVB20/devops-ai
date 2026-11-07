@@ -1,0 +1,19 @@
+DevOps AI {{ .Chart.AppVersion }} is installed as "{{ .Release.Name }}" in namespace {{ .Release.Namespace }} (revision {{ .Release.Revision }}).
+
+Database: {{ if .Values.postgres.enabled }}pgvector Postgres in the cluster ({{ include "devops-ai.fullname" . }}-db){{ else if .Values.database.existingSecret }}from Secret {{ .Values.database.existingSecret }}{{ else }}outside the cluster (database.url){{ end }}
+LLM: {{ .Values.llm.provider }}{{ if and (eq .Values.llm.provider "openrouter") (not (or .Values.llm.openrouterApiKey .Values.llm.existingSecret)) }}  (no OpenRouter key given: questions will fail until there is one)
+{{- end }}
+
+Watch it come up (the ingest Job, then the app turns 1/1 Ready):
+  kubectl -n {{ .Release.Namespace }} get pods -w
+{{- if and (eq .Values.service.type "NodePort") .Values.service.nodePort }}
+
+Chat: NodePort {{ .Values.service.nodePort }} (on kind with 10-Kubernetes/kind-config.yaml: http://127.0.0.1:8082/ui)
+{{- else }}
+
+Chat:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "devops-ai.fullname" . }} 8083:{{ .Values.service.port }}
+  then open http://127.0.0.1:8083/ui
+{{- end }}
+
+Roll back to the previous revision:  helm -n {{ .Release.Namespace }} rollback {{ .Release.Name }}

@@ -1,0 +1,12 @@
+{{- $_ := include "devops-ai.validate" . }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "devops-ai.fullname" . }}
+  labels:
+    {{- include "devops-ai.labels" . | nindent 4 }}
+data:
+  LLM_PROVIDER: {{ .Values.llm.provider | quote }}
+  OPENROUTER_MODEL: {{ .Values.llm.openrouterModel | quote }}
+  OLLAMA_BASE_URL: {{ .Values.llm.ollamaBaseUrl | quote }}
+  OLLAMA_MODEL: {{ .Values.llm.ollamaModel | quote }}
