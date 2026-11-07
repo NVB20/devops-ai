@@ -69,14 +69,14 @@ flowchart LR
 | 04 | [04-LangGraph](./04-LangGraph) | LangGraph intent router: troubleshooting / knowledge / other | ✅ |
 | 05 | [05-Agents](./05-Agents) | Troubleshooting Agent and Knowledge Agent with tool calling | ✅ |
 | 06 | [06-Deploy](./06-Deploy) | Retrieval tests, DB-aware `/health`, fully containerized | ✅ |
-| 07 | [07-n8n-Ollama](./07-n8n-Ollama) | Local LLM (Ollama) as an alternative to OpenRouter, n8n chat workflow | 🚧 |
+| 07 | [07-n8n-Ollama](./07-n8n-Ollama) | Local LLM (Ollama) as an alternative to OpenRouter, n8n chat workflow | ✅ |
 | 08 | [08-CICD](./08-CICD) | GitHub Actions: tests on real pgvector, config checks, image to GHCR | 🚧 |
 | 09 | [09-Monitoring](./09-Monitoring) | `/metrics`, Prometheus alert rules, Grafana dashboard | 🚧 |
 | 10 | [10-Kubernetes](./10-Kubernetes) | Postgres, ingest Job and chatbot on a local kind cluster | 🚧 |
 | 11 | [11-Terraform-Floci](./11-Terraform-Floci) | Terraform builds VPC, S3, ECR, RDS (pgvector) and EKS on Floci (local AWS) | 🚧 |
 | 12 | [12-Helm](./12-Helm) | One Helm chart with values for kind and Floci's EKS | 🚧 |
 | 13 | [13-ArgoCD](./13-ArgoCD) | GitOps: ArgoCD deploys from `main`, CI commits each image tag | 🚧 |
-| 14 | [14-Platform](./14-Platform) | Answer review against runbooks, alerts → n8n → chatbot → Discord, Postgres + n8n metrics | 🚧 |
+| 14 | [14-Platform](./14-Platform) | Answer review against runbooks, alerts → n8n → chatbot → Discord, Postgres + n8n metrics | ✅ |
 
 ---
 
@@ -580,6 +580,8 @@ Likely cause: ... Check: ... Fix: ... [database-connection-errors.md]
 
 If the chatbot can't answer (it may be what's down), the alert still goes out, saying so.
 
+Before posting, the "Summarize with Ollama" step asks Ollama on the host (`OLLAMA_BASE_URL`, `OLLAMA_MODEL`, same as the app) to shorten the alert and the advice to 5 bullet points. This is the one place a workflow calls Ollama itself. If Ollama is down or slow (2 min timeout), the full message goes out.
+
 **3. More monitoring.** `postgres-exporter`, n8n's own `/metrics`, and Alertmanager are scraped. New alerts: Postgres down or near its connection limit, n8n down, over 20% of answers flagged. The dashboard has new rows for the review and for Postgres and n8n.
 
 Run it (add `DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...` to `.env` first: Discord channel → Edit Channel → Integrations → Webhooks → New Webhook → Copy URL):
@@ -604,6 +606,8 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:9093/api/v2/alerts -Content
 ```
 
 About 10 seconds later (Alertmanager's `group_wait`) the chatbot's answer from `kubernetes-crashloopbackoff.md` is in Discord, and the run is in n8n under Executions. Without `DISCORD_WEBHOOK_URL`, the run stops at "Discord configured?".
+
+**Fallback channel.** Alertmanager also posts every alert straight to a second Discord channel (raw alert, no AI, and "resolved" when it's fixed), so alerts still arrive when n8n is down. Add `DISCORD_FALLBACK_WEBHOOK_URL` to `.env`. Alertmanager can't read env vars in its config, so its entrypoint writes the URL to a file the config reads (`webhook_url_file`).
 
 **Daily health report.** `14-Platform/n8n/devops-ai-daily-report.json` runs every day at 09:00 (Asia/Jerusalem). It reads the app's `/health` and Prometheus' firing alerts and posts ✅ "all systems OK" or ❌ with what's wrong to Discord. If the message doesn't come one morning, n8n itself is down. It's imported and published on n8n start; "Run now" in the editor runs it at once.
 
