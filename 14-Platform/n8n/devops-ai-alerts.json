@@ -80,12 +80,57 @@
       }
     },
     {
+      "id": "a1000000-0000-4000-8000-000000000009",
+      "name": "Summarize with Ollama",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        0
+      ],
+      "onError": "continueRegularOutput",
+      "notes": "Shortens the alert + advice for Discord. If Ollama is down or slow, the full message is posted instead.",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.OLLAMA_BASE_URL || 'http://host.docker.internal:11434/v1') + '/chat/completions' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $env.OLLAMA_MODEL || 'llama3.2', stream: false, messages: [ { role: 'system', content: 'You summarize DevOps alerts for a Discord channel. Keep the first line (alert name and severity) as it is. Then give at most 5 short bullet points: the likely cause and the first things to check or fix. Use only facts from the message. No preamble.' }, { role: 'user', content: $json.content } ] }) }}",
+        "options": {
+          "timeout": 120000
+        }
+      }
+    },
+    {
+      "id": "a1000000-0000-4000-8000-000000000010",
+      "name": "Short message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1100,
+        0
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1000000-0000-4000-8000-000000000011",
+              "name": "content",
+              "type": "string",
+              "value": "={{ (() => { const summary = $json.choices && $json.choices[0] && $json.choices[0].message && $json.choices[0].message.content; return summary ? summary.trim().slice(0, 1900) : $('Discord message').item.json.content; })() }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
       "id": "a1000000-0000-4000-8000-000000000006",
       "name": "Discord configured?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        880,
+        1320,
         0
       ],
       "parameters": {
@@ -119,7 +164,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1100,
+        1540,
         -100
       ],
       "parameters": {
@@ -167,6 +212,28 @@
       ]
     },
     "Discord message": {
+      "main": [
+        [
+          {
+            "node": "Summarize with Ollama",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize with Ollama": {
+      "main": [
+        [
+          {
+            "node": "Short message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Short message": {
       "main": [
         [
           {

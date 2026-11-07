@@ -580,6 +580,8 @@ Likely cause: ... Check: ... Fix: ... [database-connection-errors.md]
 
 If the chatbot can't answer (it may be what's down), the alert still goes out, saying so.
 
+Before posting, the "Summarize with Ollama" step asks Ollama on the host (`OLLAMA_BASE_URL`, `OLLAMA_MODEL`, same as the app) to shorten the alert and the advice to 5 bullet points. This is the one place a workflow calls Ollama itself. If Ollama is down or slow (2 min timeout), the full message goes out.
+
 **3. More monitoring.** `postgres-exporter`, n8n's own `/metrics`, and Alertmanager are scraped. New alerts: Postgres down or near its connection limit, n8n down, over 20% of answers flagged. The dashboard has new rows for the review and for Postgres and n8n.
 
 Run it (add `DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...` to `.env` first: Discord channel → Edit Channel → Integrations → Webhooks → New Webhook → Copy URL):

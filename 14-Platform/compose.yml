@@ -26,6 +26,11 @@ services:
       # The alert workflow reads the Discord URL with $env, which n8n blocks by default
       N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+      # The alert workflow asks Ollama (on the host) to shorten the message before Discord; same model as the app
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434/v1}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     # Import every workflow (same ids, so updated, not duplicated), publish the alert one (its webhook must
     # answer) and the daily report (its schedule must run), then start n8n
     entrypoint:
