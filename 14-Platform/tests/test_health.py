@@ -11,7 +11,25 @@ def test_health_reports_the_database_is_up(monkeypatch):
         response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "healthy", "database": "up", "chunks": 177,
-                               "llm": {"provider": main.PROVIDER, "model": main.MODEL}}
+                               "llm": {"provider": main.PROVIDER, "model": main.MODEL}, "runtime": main.RUNTIME}
+
+
+def test_runtime_detection(monkeypatch):
+    for name in ("KUBERNETES_SERVICE_HOST", "APP_RUNTIME", "POD_NAME", "POD_NAMESPACE"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setattr(main.os.path, "exists", lambda path: False)
+    assert main.detect_runtime()["kind"] == "local"
+
+    monkeypatch.setattr(main.os.path, "exists", lambda path: path == "/.dockerenv")
+    assert main.detect_runtime()["kind"] == "docker"
+
+    # Kubernetes wins over /.dockerenv; APP_RUNTIME only changes the label
+    monkeypatch.setenv("KUBERNETES_SERVICE_HOST", "10.96.0.1")
+    monkeypatch.setenv("APP_RUNTIME", "kind")
+    monkeypatch.setenv("POD_NAMESPACE", "devops-ai")
+    monkeypatch.setenv("POD_NAME", "devops-ai-abc")
+    rt = main.detect_runtime()
+    assert (rt["kind"], rt["label"], rt["pod"]) == ("kubernetes", "kind", "devops-ai/devops-ai-abc")
 
 
 def test_health_reports_the_database_is_down(monkeypatch):

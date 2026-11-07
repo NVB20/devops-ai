@@ -617,9 +617,11 @@ About 10 seconds later (Alertmanager's `group_wait`) the chatbot's answer from `
 - Add these random values to `.env` first: `SANDBOX_API_KEYS`, `SANDBOX_RUNNER_REGISTRATION_TOKEN`, `SANDBOX_RUNNER_API_KEYS`. The runner is privileged (Docker-in-Docker); no sandbox port is published.
 - Watch out for the browser filling your n8n login into these forms.
 
+**Where it runs.** A badge in the chat header shows where the app runs: 🐳 docker, ☸ kubernetes or 💻 local. Hover it for the host, the OS and, on Kubernetes, the pod. The app finds out by itself. Kubernetes sets `KUBERNETES_SERVICE_HOST` in every pod, and Docker creates `/.dockerenv`. Anything else counts as local, which includes uvicorn in a terminal. `APP_RUNTIME` changes the label, and the chart sets it from `runtimeLabel` (`kind` or `floci-eks`). The chart also passes the pod name through the Downward API. `/health` returns it as `runtime`, and `/metrics` has `devops_ai_runtime_info{kind,label}`.
+
 The step 14 image is also what CI publishes and ArgoCD deploys (the chart's `appVersion` is 14).
 
-Tests: `test_review.py` (passes, one rewrite, flagged after the rewrite, nothing to review, an unreadable verdict, the stream events), and the step 09 tests updated for the review step.
+Tests: `test_health.py` (runtime detection), `test_review.py` (passes, one rewrite, flagged after the rewrite, nothing to review, an unreadable verdict, the stream events), and the step 09 tests updated for the review step.
 
 </details>
 
