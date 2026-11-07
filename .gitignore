@@ -10,3 +10,7 @@ __pycache__/
 *.tfvars
 crash.log
 11-Terraform-Floci/infra/kubeconfig
+
+# Local media, not part of the repo
+video/
+Project AI - Knowledge Base.pdf
