@@ -73,9 +73,9 @@ flowchart LR
 | 08 | [08-CICD](./08-CICD) | GitHub Actions: tests on real pgvector, config checks, image to GHCR | 🚧 |
 | 09 | [09-Monitoring](./09-Monitoring) | `/metrics`, Prometheus alert rules, Grafana dashboard | 🚧 |
 | 10 | [10-Kubernetes](./10-Kubernetes) | Postgres, ingest Job and chatbot on a local kind cluster | 🚧 |
-| 11 | [11-Terraform-Floci](./11-Terraform-Floci) | Terraform builds VPC, S3, ECR, RDS (pgvector) and EKS on Floci (local AWS) | 🚧 |
-| 12 | [12-Helm](./12-Helm) | One Helm chart with values for kind and Floci's EKS | 🚧 |
-| 13 | [13-ArgoCD](./13-ArgoCD) | GitOps: ArgoCD deploys from `main`, CI commits each image tag | 🚧 |
+| 11 | [11-Terraform-Floci](./11-Terraform-Floci) | Terraform builds VPC, S3, ECR, RDS (pgvector) and EKS on Floci (local AWS) | ✅ |
+| 12 | [12-Helm](./12-Helm) | One Helm chart with values for kind and Floci's EKS | ✅ |
+| 13 | [13-ArgoCD](./13-ArgoCD) | GitOps: ArgoCD deploys from `main`, CI commits each image tag | ✅ |
 | 14 | [14-Platform](./14-Platform) | Answer review against runbooks, alerts → n8n → chatbot → Discord, Postgres + n8n metrics | ✅ |
 
 ---
@@ -444,7 +444,7 @@ The chat is at http://127.0.0.1:8083/ui. `terraform output` in each stage shows 
 How the Floci parts fit together (all set in `11-Terraform-Floci/compose.yml`):
 
 - **pgvector on RDS.** Floci's RDS runs `postgres:16-alpine` by default, which has no pgvector. `FLOCI_SERVICES_RDS_DEFAULT_POSTGRES_IMAGE=pgvector/pgvector:pg17` swaps the image. The RDS master user is a superuser there, so the ingest's `CREATE EXTENSION vector` works, as on real RDS.
-- **Pods reach RDS** at `localhost.floci.io:<port>`. Floci proxies each database on a port of 7001-7099 inside its own container, and Floci's DNS answers that name with its container's address inside the cluster. On real AWS, set `db_host_in_cluster = ""` to use the RDS address.
+- **Pods reach RDS** at the RDS endpoint address, as on real AWS. On Floci that's the Floci container's address on the `floci` network (e.g. `172.29.0.2:7001`), where it proxies each database on a port of 7001-7099; the EKS node is on that network too. `localhost.floci.io` doesn't work: pods resolve it to `127.0.0.1`, themselves. If Floci restarts with a new address, `terraform apply` in `infra/` updates the secret.
 - **ECR URLs** use the path style (`localhost:4566/<account>/<region>/<repo>`), because Docker Desktop's containerd image store pushes over plain HTTP only to `localhost`. Floci points the cluster's containerd at the same registry, so pods pull the same URL.
 - **EKS logins** need a real IAM key: Floci refuses its public `test/test` key for them (it would grant cluster-admin). The infra stage creates a `devops-ai-deployer` user with an access entry; the kubeconfig and the app stage sign in as it. The kubeconfig and the state files hold that key and the database password, so they're git-ignored.
 - **No AWS CLI?** Use k3s's own admin kubeconfig instead: `docker cp floci-aws-eks-devops-ai:/etc/rancher/k3s/k3s.yaml k3s.yaml`, then replace `https://127.0.0.1:6443` in it with the `cluster_endpoint` output.

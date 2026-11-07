@@ -28,10 +28,10 @@ variable "kubernetes_version" {
 
 variable "db_host_in_cluster" {
   description = <<-EOT
-    The database host the pods use. Floci's RDS proxy runs inside the Floci container, and Floci's DNS
-    answers localhost.floci.io with that container's address inside the clusters it starts.
-    On real AWS, set it to "" to use the RDS endpoint address.
+    The database host the pods use. Empty = the RDS endpoint address, as on real AWS. On Floci that's the
+    Floci container's address on the floci network, which the EKS node can reach. Not localhost.floci.io:
+    pods resolve it to 127.0.0.1 (themselves). Set a host here only to override the endpoint.
   EOT
   type        = string
-  default     = "localhost.floci.io"
+  default     = ""
 }

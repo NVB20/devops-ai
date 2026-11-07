@@ -48,9 +48,9 @@ output "deployer_secret_access_key" {
 }
 
 output "push_image" {
-  description = "Build the step 09 image and push it to ECR (run from the repo root)"
+  description = "Build the step 14 image (the app CI ships) and push it to ECR (run from the repo root)"
   value       = <<-EOT
-    docker build -f 09-Monitoring/Dockerfile -t ${aws_ecr_repository.app.repository_url}:09 .
-    docker push ${aws_ecr_repository.app.repository_url}:09
+    docker build -f 14-Platform/Dockerfile -t ${aws_ecr_repository.app.repository_url}:14 .
+    docker push ${aws_ecr_repository.app.repository_url}:14
   EOT
 }

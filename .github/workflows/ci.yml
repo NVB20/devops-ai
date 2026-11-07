@@ -86,6 +86,10 @@ jobs:
       - name: Compose files (every step's stack)
         env:
           OPENROUTER_API_KEY: x
+          # Step 14's n8n sandbox requires its keys (it fails fast locally without them)
+          SANDBOX_API_KEYS: x
+          SANDBOX_RUNNER_REGISTRATION_TOKEN: x
+          SANDBOX_RUNNER_API_KEYS: x
         run: |
           docker compose -f docker-compose.yml config --quiet
           docker compose -f docker-compose.yml -f 07-n8n-Ollama/compose.yml config --quiet

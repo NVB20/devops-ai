@@ -11,7 +11,7 @@ variable "region" {
 variable "image_tag" {
   description = "The tag pushed to ECR (see step 11's push_image output)"
   type        = string
-  default     = "09"
+  default     = "14"
 }
 
 variable "llm_provider" {
