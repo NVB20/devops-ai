@@ -12,7 +12,7 @@ or push      ├─ test (09-Monitoring) ─┤
 | Job | What it checks |
 |---|---|
 | `test` (one per step) | A real Postgres + pgvector as a service container, a real ingest of `knowledge-base/`, then `pytest tests`. So `test_retrieval.py` runs for real here (it's skipped on a machine without Postgres): every runbook must be the first search result for its question. The LLM is faked in the tests, so no OpenRouter key or quota is used. |
-| `configs` | The compose files of steps 06, 07, 09 and 11 (`docker compose config`), the Prometheus config and alert rules (`promtool check config`), the step 10 Kubernetes manifests against the Kubernetes schema (`kubeconform -strict`), and both Terraform stages of step 11 (`terraform fmt -check` and `terraform validate`, no Floci needed). |
+| `configs` | The compose files of steps 06, 07, 09 and 11 (`docker compose config`), the Prometheus config and alert rules (`promtool check config`), the step 10 Kubernetes manifests against the Kubernetes schema (`kubeconform -strict`), the step 12 Helm chart (lint, rendered for kind and Floci, schema-checked, and its behaviour checked), and the Terraform of steps 11 and 12 (`terraform fmt -check` and `terraform validate`, no Floci needed). |
 | `image` | Builds the latest step's image (`APP_STEP` in the workflow). Pull requests only build it. On `main` it's pushed to `ghcr.io/nvb20/devops-ai-app` as `latest` and `sha-<commit>`. Runs only when `test` and `configs` pass. |
 
 **Secrets:** none to add. The push uses the built-in `GITHUB_TOKEN` (the job has `packages: write`). The tests use a dummy OpenRouter key, since they fake the LLM.

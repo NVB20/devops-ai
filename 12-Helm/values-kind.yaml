@@ -1,0 +1,13 @@
+# The chart on the kind cluster of step 10 (10-Kubernetes/kind-config.yaml):
+#   helm upgrade --install devops-ai 12-Helm/devops-ai -n devops-ai --create-namespace \
+#     -f 12-Helm/values-kind.yaml --set-string llm.openrouterApiKey=<key> --wait --wait-for-jobs --timeout 10m
+image:
+  repository: devops-ai-app  # loaded with: kind load docker-image devops-ai-app:09 --name devops-ai
+  pullPolicy: IfNotPresent
+
+postgres:
+  enabled: true  # no managed database on kind: a pgvector Postgres in the cluster
+
+service:
+  type: NodePort
+  nodePort: 30082  # kind-config.yaml publishes it on 127.0.0.1:8082

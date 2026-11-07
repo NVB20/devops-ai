@@ -1,0 +1,11 @@
+# The chart on Floci's EKS (step 11). 12-Helm/floci (Terraform) installs it with these values plus
+# what only Terraform knows: the ECR repository, the RDS URL from Secrets Manager, the OpenRouter key.
+image:
+  repository: localhost:4566/000000000000/us-east-1/devops-ai-app  # Floci's ECR, path-style
+  pullPolicy: IfNotPresent
+
+postgres:
+  enabled: false  # the database is RDS: database.url comes from Terraform
+
+service:
+  type: ClusterIP  # the cluster's ports aren't published; reach it with kubectl port-forward
