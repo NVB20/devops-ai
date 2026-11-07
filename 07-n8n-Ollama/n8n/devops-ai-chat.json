@@ -1,0 +1,73 @@
+{
+  "id": "devopsAiChat0001",
+  "name": "DevOps AI chat",
+  "nodes": [
+    {
+      "id": "5f0c2a1e-1b7d-4f43-9d6e-0a1c00000001",
+      "name": "When chat message received",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 0],
+      "webhookId": "devops-ai-chat",
+      "parameters": {
+        "public": true,
+        "initialMessages": "Hi! Ask me about our DevOps runbooks, e.g. \"my pod keeps crashing\".",
+        "options": {
+          "responseMode": "lastNode",
+          "title": "DevOps AI",
+          "subtitle": "Answers from our runbooks"
+        }
+      }
+    },
+    {
+      "id": "5f0c2a1e-1b7d-4f43-9d6e-0a1c00000002",
+      "name": "Ask the DevOps AI API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [260, 0],
+      "parameters": {
+        "method": "POST",
+        "url": "http://app:8000/chat",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ message: $json.chatInput }) }}",
+        "options": {
+          "timeout": 300000
+        }
+      }
+    },
+    {
+      "id": "5f0c2a1e-1b7d-4f43-9d6e-0a1c00000003",
+      "name": "Answer with sources",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [520, 0],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5f0c2a1e-1b7d-4f43-9d6e-0a1c00000004",
+              "name": "output",
+              "type": "string",
+              "value": "={{ $json.answer }}{{ $json.sources.length ? '\\n\\nSources: ' + $json.sources.join(', ') : '' }}\n\n(route: {{ $json.route }}, model: {{ $json.model }})"
+            }
+          ]
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "When chat message received": {
+      "main": [[{ "node": "Ask the DevOps AI API", "type": "main", "index": 0 }]]
+    },
+    "Ask the DevOps AI API": {
+      "main": [[{ "node": "Answer with sources", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "active": false
+}
