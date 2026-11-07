@@ -3,7 +3,7 @@
 
 data "terraform_remote_state" "infra" {
   backend = "local"
-  config  = {
+  config = {
     path = "${path.module}/../infra/terraform.tfstate"
   }
 }

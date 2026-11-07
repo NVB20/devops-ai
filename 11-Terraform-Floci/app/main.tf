@@ -119,7 +119,7 @@ resource "kubernetes_deployment_v1" "app" {
 
     template {
       metadata {
-        labels      = merge(local.labels, { "app.kubernetes.io/name" = "devops-ai-app" })
+        labels = merge(local.labels, { "app.kubernetes.io/name" = "devops-ai-app" })
         annotations = {
           "prometheus.io/scrape" = "true"
           "prometheus.io/port"   = "8000"
