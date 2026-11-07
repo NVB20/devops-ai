@@ -69,14 +69,14 @@ flowchart LR
 | 04 | [04-LangGraph](./04-LangGraph) | LangGraph intent router: troubleshooting / knowledge / other | ✅ |
 | 05 | [05-Agents](./05-Agents) | Troubleshooting Agent and Knowledge Agent with tool calling | ✅ |
 | 06 | [06-Deploy](./06-Deploy) | Retrieval tests, DB-aware `/health`, fully containerized | ✅ |
-| 07 | [07-n8n-Ollama](./07-n8n-Ollama) | Local LLM (Ollama) as an alternative to OpenRouter, n8n chat workflow | 🚧 |
+| 07 | [07-n8n-Ollama](./07-n8n-Ollama) | Local LLM (Ollama) as an alternative to OpenRouter, n8n chat workflow | ✅ |
 | 08 | [08-CICD](./08-CICD) | GitHub Actions: tests on real pgvector, config checks, image to GHCR | 🚧 |
 | 09 | [09-Monitoring](./09-Monitoring) | `/metrics`, Prometheus alert rules, Grafana dashboard | 🚧 |
 | 10 | [10-Kubernetes](./10-Kubernetes) | Postgres, ingest Job and chatbot on a local kind cluster | 🚧 |
 | 11 | [11-Terraform-Floci](./11-Terraform-Floci) | Terraform builds VPC, S3, ECR, RDS (pgvector) and EKS on Floci (local AWS) | 🚧 |
 | 12 | [12-Helm](./12-Helm) | One Helm chart with values for kind and Floci's EKS | 🚧 |
 | 13 | [13-ArgoCD](./13-ArgoCD) | GitOps: ArgoCD deploys from `main`, CI commits each image tag | 🚧 |
-| 14 | [14-Platform](./14-Platform) | Answer review against runbooks, alerts → n8n → chatbot → Discord, Postgres + n8n metrics | 🚧 |
+| 14 | [14-Platform](./14-Platform) | Answer review against runbooks, alerts → n8n → chatbot → Discord, Postgres + n8n metrics | ✅ |
 
 ---
 
