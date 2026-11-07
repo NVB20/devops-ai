@@ -605,6 +605,8 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:9093/api/v2/alerts -Content
 
 About 10 seconds later (Alertmanager's `group_wait`) the chatbot's answer from `kubernetes-crashloopbackoff.md` is in Discord, and the run is in n8n under Executions. Without `DISCORD_WEBHOOK_URL`, the run stops at "Discord configured?".
 
+**Fallback channel.** Alertmanager also posts every alert straight to a second Discord channel (raw alert, no AI, and "resolved" when it's fixed), so alerts still arrive when n8n is down. Add `DISCORD_FALLBACK_WEBHOOK_URL` to `.env`. Alertmanager can't read env vars in its config, so its entrypoint writes the URL to a file the config reads (`webhook_url_file`).
+
 **Daily health report.** `14-Platform/n8n/devops-ai-daily-report.json` runs every day at 09:00 (Asia/Jerusalem). It reads the app's `/health` and Prometheus' firing alerts and posts ✅ "all systems OK" or ❌ with what's wrong to Discord. If the message doesn't come one morning, n8n itself is down. It's imported and published on n8n start; "Run now" in the editor runs it at once.
 
 **n8n Assistant (optional).** n8n's built-in Assistant asks for a model and a code sandbox.

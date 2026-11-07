@@ -116,7 +116,15 @@ services:
   alertmanager:
     image: prom/alertmanager:latest
     container_name: devops-ai-alertmanager
-    command: ["--config.file=/etc/alertmanager/alertmanager.yml"]
+    environment:
+      DISCORD_FALLBACK_WEBHOOK_URL: ${DISCORD_FALLBACK_WEBHOOK_URL:-}
+    # Write the fallback Discord URL to a file (the config reads it from there), then start Alertmanager
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >-
+        printf '%s' "$$DISCORD_FALLBACK_WEBHOOK_URL" > /tmp/discord-fallback-url &&
+        exec /bin/alertmanager --config.file=/etc/alertmanager/alertmanager.yml --storage.path=/alertmanager
     ports:
       - "127.0.0.1:9093:9093"
     volumes:
