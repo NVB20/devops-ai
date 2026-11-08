@@ -543,7 +543,7 @@ kubectl apply -n argocd -f 13-ArgoCD/root.yaml
 
 The image is pulled from `ghcr.io/nvb20/devops-ai-app`, and GHCR packages start private: on GitHub open the package → Package settings → Change visibility → Public. (Or keep it private: create a `docker-registry` Secret named `ghcr` in `devops-ai` and uncomment `imagePullSecrets` in `values-argocd.yaml`.)
 
-The ArgoCD UI: `kubectl -n argocd port-forward svc/argocd-server 8443:443`, then https://127.0.0.1:8443, user `admin`, password from `kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}"` (base64). The chat is at http://127.0.0.1:8082/ui as in step 12. Prometheus: `kubectl -n monitoring port-forward svc/prometheus-server 9091:80`.
+The ArgoCD UI: `kubectl -n argocd port-forward svc/argocd-server 8443:443`, then https://127.0.0.1:8443, user `admin`, password from `kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}"` (base64). The chat is at http://127.0.0.1:8082/ui as in step 12; ArgoCD shows it as a link on the `devops-ai` app and its Service (the chart's `service.annotations`, set in `values-kind.yaml`). Prometheus: `kubectl -n monitoring port-forward svc/prometheus-server 9091:80`.
 
 What GitOps gives here:
 
