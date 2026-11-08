@@ -57,6 +57,8 @@ service:
   type: ClusterIP  # NodePort on kind
   port: 8000
   nodePort: null
+  # e.g. link.argocd.argoproj.io/external-link: the URL ArgoCD shows as a link on the app
+  annotations: {}
 
 # Whisper (voice input) loads ~0.5-1 GB on the first voice message
 resources:

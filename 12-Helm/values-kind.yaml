@@ -13,3 +13,5 @@ postgres:
 service:
   type: NodePort
   nodePort: 30082  # kind-config.yaml publishes it on 127.0.0.1:8082
+  annotations:
+    link.argocd.argoproj.io/external-link: http://127.0.0.1:8082/ui  # the "open" link in ArgoCD
