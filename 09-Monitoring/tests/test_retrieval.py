@@ -19,6 +19,7 @@ KNOWN = [
     ("what security gates does our pipeline have?", "devsecops-pipeline-security-gates.md"),
     ("no space left on device", "disk-full.md"),
     ("pods can't resolve service names", "dns-resolution-failures.md"),
+    ("the sales dashboard stopped updating, the analytics consumer is behind on the topic", "kafka-consumer-lag.md"),
     ("my container exits right after it starts", "docker-container-restarting.md"),
     ("helm says another operation is in progress", "helm-upgrade-failed.md"),
     ("the server is slow and the CPU is at 100%", "high-cpu-memory.md"),

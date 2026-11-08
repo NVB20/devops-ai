@@ -26,7 +26,7 @@
 | 🧠 **Agentic RAG** | Specialized LLM agents use tool calling to search the runbooks themselves, rewording the query up to 3 times |
 | 🔀 **Intent routing** | A LangGraph state machine classifies every question as troubleshooting, knowledge or off-topic |
 | 🔎 **Semantic search** | 384-dim vector embeddings (`all-MiniLM-L6-v2`) in Postgres + pgvector, with a similarity cutoff |
-| 📚 **Grounded answers** | Answers only from the 30 runbooks in the knowledge base and cites them like `[disk-full.md]`. No hallucinated fixes |
+| 📚 **Grounded answers** | Answers only from the 31 runbooks in the knowledge base and cites them like `[disk-full.md]`. No hallucinated fixes |
 | ⚡ **Real-time streaming** | Server-Sent Events stream every graph node, tool call and token live to the UI |
 | 🛰️ **Live architecture view** | Watch each request flow through Chat UI → FastAPI → classify → embed → pgvector → agent |
 | 🎙️ **Voice input** | Local speech-to-text with Whisper |
@@ -51,7 +51,7 @@ flowchart LR
     K <-->|search_runbooks| S
     T --> A([Answer + sources])
     K --> A
-    KB[[📁 30 runbooks]] -->|ingest: chunk + embed| S
+    KB[[📁 31 runbooks]] -->|ingest: chunk + embed| S
     T -.-> OR[☁️ OpenRouter LLM]
     K -.-> OR
     C -.-> OR
@@ -606,7 +606,7 @@ docker compose -f docker-compose.yml -f 07-n8n-Ollama/compose.yml -f 09-Monitori
 | http://127.0.0.1:5678 | n8n: the chat and alert workflows |
 | http://127.0.0.1:9090/alerts | Prometheus alerts |
 | http://127.0.0.1:9093 | Alertmanager |
-| http://127.0.0.1:3000 | Grafana |
+| http://127.0.0.1:3000 | Grafana (Alerting → Alert list / Silences also show Alertmanager) |
 
 Try the alert path without breaking anything, by sending Alertmanager a made-up alert:
 
@@ -618,6 +618,8 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:9093/api/v2/alerts -Content
 About 10 seconds later (Alertmanager's `group_wait`) the chatbot's answer from `kubernetes-crashloopbackoff.md` is in Discord, and the run is in n8n under Executions. Without `DISCORD_WEBHOOK_URL`, the run stops at "Discord configured?".
 
 **Runbook gaps.** Each question no runbook answers is saved in Postgres (`unanswered_questions`, created by ingest and never emptied). `GET /gaps` lists them, most asked first: those are the runbooks to write next. Grafana's "Runbook coverage" row shows the % unanswered over time (24h and 7 days), so you see it drop as runbooks are added. "Clarify" and off-topic questions don't count. Saving never blocks an answer: if Postgres refuses, it's only logged.
+
+**Alertmanager in Grafana.** Grafana has an Alertmanager datasource next to Prometheus (provisioned in `14-Platform/grafana/provisioning/`). Grafana's Alerting pages then show Alertmanager's firing alerts and silences, and you can add a silence there. The datasource can't be charted (Explore shows "no Query Editor"), so the dashboard's "Alertmanager" row uses the metrics Prometheus scrapes from it: firing alerts, silences, and notifications sent or failed per channel. The alert rules stay in Prometheus; Grafana doesn't send any alerts itself.
 
 **Fallback channel.** Alertmanager also posts every alert straight to a second Discord channel (raw alert, no AI, and "resolved" when it's fixed), so alerts still arrive when n8n is down. Add `DISCORD_FALLBACK_WEBHOOK_URL` to `.env`. Alertmanager can't read env vars in its config, so its entrypoint writes the URL to a file the config reads (`webhook_url_file`).
 

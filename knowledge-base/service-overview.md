@@ -10,6 +10,7 @@ The Orders platform lets customers browse products, place orders and pay online.
 4. orders-api reads and writes order data in **PostgreSQL** through **PgBouncer**, and caches product data in **Redis**.
 5. When an order is placed, orders-api publishes an `order.created` message to **RabbitMQ**.
 6. **notifications-worker** consumes the message and sends the confirmation email.
+7. orders-api also writes every order event to the `orders.events` topic in **Kafka**. **analytics-consumer** reads it and fills the reporting database behind the sales dashboards.
 
 ## Services
 | Service | What it does | Tech | Owner |
@@ -18,6 +19,7 @@ The Orders platform lets customers browse products, place orders and pay online.
 | orders-api | Creates, reads and updates orders; serves the product catalog | Python, FastAPI | Orders team |
 | payments-service | Talks to the external payment provider and stores payment status | Python, FastAPI | Payments team |
 | notifications-worker | Sends emails for order events from RabbitMQ | Python | Orders team |
+| analytics-consumer | Reads order events from Kafka into the reporting database | Python | Data team |
 | ingress-nginx | Entry point for all traffic: TLS and routing | nginx | Platform team |
 | cert-manager | Issues and renews TLS certificates from Let's Encrypt | Kubernetes operator | Platform team |
 
@@ -27,6 +29,7 @@ The Orders platform lets customers browse products, place orders and pay online.
 | PostgreSQL | Orders, customers, payments | One primary and one read replica. `max_connections` is 200. All apps connect through PgBouncer | Data team |
 | Redis | Product cache and user sessions | Data can be rebuilt. Flushing it in an emergency is safe, but users are logged out | Data team |
 | RabbitMQ | Async messages between services | If it's down, orders still work but emails are delayed | Data team |
+| Kafka | Order event stream for analytics (`orders.events`, 6 partitions, 7-day retention) | Only analytics reads it: if it's down or behind, reports are late, customers see nothing | Data team |
 
 ## Infrastructure and tools
 - **Kubernetes:** 6 worker nodes in `prod`. Each service has its Helm chart in its own repository.
@@ -46,6 +49,7 @@ The Orders platform lets customers browse products, place orders and pay online.
 | PostgreSQL primary | Almost everything fails | SEV1; page the Data team |
 | Redis | Pages are slower and users are logged out | SEV2 |
 | notifications-worker | Emails are delayed; messages wait in RabbitMQ and are sent when it recovers | SEV3 |
+| Kafka or analytics-consumer | Sales reports are late; events wait in Kafka (see "Kafka consumer lag growing") | SEV3 |
 | web-frontend | The web app doesn't load; the API still works | SEV1 |
 
 ## Team contacts
