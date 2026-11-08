@@ -26,7 +26,7 @@
 | 🧠 **Agentic RAG** | Specialized LLM agents use tool calling to search the runbooks themselves, rewording the query up to 3 times |
 | 🔀 **Intent routing** | A LangGraph state machine classifies every question as troubleshooting, knowledge or off-topic |
 | 🔎 **Semantic search** | 384-dim vector embeddings (`all-MiniLM-L6-v2`) in Postgres + pgvector, with a similarity cutoff |
-| 📚 **Grounded answers** | Answers only from the 30 runbooks in the knowledge base and cites them like `[disk-full.md]`. No hallucinated fixes |
+| 📚 **Grounded answers** | Answers only from the 31 runbooks in the knowledge base and cites them like `[disk-full.md]`. No hallucinated fixes |
 | ⚡ **Real-time streaming** | Server-Sent Events stream every graph node, tool call and token live to the UI |
 | 🛰️ **Live architecture view** | Watch each request flow through Chat UI → FastAPI → classify → embed → pgvector → agent |
 | 🎙️ **Voice input** | Local speech-to-text with Whisper |
@@ -51,7 +51,7 @@ flowchart LR
     K <-->|search_runbooks| S
     T --> A([Answer + sources])
     K --> A
-    KB[[📁 30 runbooks]] -->|ingest: chunk + embed| S
+    KB[[📁 31 runbooks]] -->|ingest: chunk + embed| S
     T -.-> OR[☁️ OpenRouter LLM]
     K -.-> OR
     C -.-> OR
