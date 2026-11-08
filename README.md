@@ -70,7 +70,7 @@ flowchart LR
 | 05 | [05-Agents](./05-Agents) | Troubleshooting Agent and Knowledge Agent with tool calling | ✅ |
 | 06 | [06-Deploy](./06-Deploy) | Retrieval tests, DB-aware `/health`, fully containerized | ✅ |
 | 07 | [07-n8n-Ollama](./07-n8n-Ollama) | Local LLM (Ollama) as an alternative to OpenRouter, n8n chat workflow | ✅ |
-| 08 | [08-CICD](./08-CICD) | GitHub Actions: tests on real pgvector, config checks, image to GHCR | 🚧 |
+| 08 | [08-CICD](./08-CICD) | GitHub Actions: tests on real pgvector, config checks, image to GHCR | ✅ |
 | 09 | [09-Monitoring](./09-Monitoring) | `/metrics`, Prometheus alert rules, Grafana dashboard | ✅ |
 | 10 | [10-Kubernetes](./10-Kubernetes) | Postgres, ingest Job and chatbot on a local kind cluster | 🚧 |
 | 11 | [11-Terraform-Floci](./11-Terraform-Floci) | Terraform builds VPC, S3, ECR, RDS (pgvector) and EKS on Floci (local AWS) | ✅ |
@@ -465,7 +465,7 @@ Steps 10 and 11 describe the same app twice: plain YAML for kind, Terraform reso
 | `devops-ai/values.yaml` | The defaults: image, LLM, database, resources, probes |
 | `values-kind.yaml` | Postgres in the cluster, the image loaded into kind, NodePort 30082 |
 | `values-floci.yaml` | No Postgres (RDS), the image from Floci's ECR, ClusterIP |
-| `floci/` | Terraform that installs the chart on Floci's EKS (`helm_release`), with the ECR repository and the RDS URL from step 11's infra stage |
+| `floci/` | Terraform that prepares Floci's EKS for ArgoCD (step 13): the namespace, the RDS URL and OpenRouter Secrets, a ServiceAccount login for ArgoCD, and the ArgoCD cluster secret on kind |
 
 The chart renders: the app Deployment and Service, a ConfigMap (LLM settings), a Secret for `DATABASE_URL` and one for the OpenRouter key, the ingest Job, and with `postgres.enabled` a pgvector StatefulSet with its volume.
 
@@ -481,16 +481,18 @@ helm upgrade --install devops-ai 12-Helm/devops-ai -n devops-ai --create-namespa
 
 The chat is at http://127.0.0.1:8082/ui. `--wait --wait-for-jobs` returns only once the runbooks are loaded and the app is ready.
 
-**On Floci's EKS** (after step 11's infra stage and image push; it replaces step 11's app stage, so `terraform destroy` that one first):
+**On Floci's EKS** the chart is deployed by ArgoCD (step 13), like on kind. Terraform only prepares the cluster (after step 11's infra stage, with kind and ArgoCD running; it replaces step 11's app stage, so `terraform destroy` that one first):
 
 ```powershell
 $env:TF_VAR_openrouter_api_key = "<your key>"
 terraform -chdir=12-Helm/floci init
-terraform -chdir=12-Helm/floci apply
+terraform -chdir=12-Helm/floci apply   # Secrets, ArgoCD's login, registers floci-eks in ArgoCD
 kubectl --kubeconfig 11-Terraform-Floci/infra/kubeconfig -n devops-ai port-forward svc/devops-ai 8083:8000
 ```
 
-**Day 2** (kind shown; on Floci change `image_tag` and apply):
+ArgoCD reaches Floci's EKS at its address on the `floci` Docker network (`floci_eks_api`, default `https://172.29.0.5:6443`, which the API certificate accepts); Terraform joins the kind node to that network. The image comes from GHCR, like on kind.
+
+**Day 2** (kind by hand, before step 13; with ArgoCD a merge does it on both clusters):
 
 ```powershell
 helm upgrade devops-ai 12-Helm/devops-ai -n devops-ai -f 12-Helm/values-kind.yaml --reuse-values --set image.tag=10 --wait --wait-for-jobs
@@ -512,20 +514,26 @@ CI lints the chart, renders it with both values files, checks the result against
 <details>
 <summary><b>🐙 Step 13: GitOps with ArgoCD</b></summary>
 
-GitOps on the kind cluster: ArgoCD watches `main` and makes the cluster match it. Nobody runs `helm upgrade` any more; a merge does.
+GitOps on two clusters: ArgoCD runs in kind, watches `main`, and makes **kind and Floci's EKS** match it. Nobody runs `helm upgrade` any more; a merge does.
 
 ```
 merge to main ─► CI: tests ─► image to GHCR (sha-xxxxxxx) ─► CI commits that tag to 13-ArgoCD/values-argocd.yaml
                                                                               │
-ArgoCD (in the cluster, polls main every ~3 min) ◄────────────────────────────┘ ─► helm-renders the chart ─► applies it
+ArgoCD (in kind, polls main every ~3 min) ◄───────────────────────────────────┘ ─► helm-renders the chart ─► applies it
+        ├─► kind            (devops-ai,       in-cluster)
+        └─► Floci's EKS     (devops-ai-floci, over the floci Docker network)
 ```
+
+CI never talks to ArgoCD or the clusters: it only commits to Git, and ArgoCD pulls. That's why a GitHub runner can deploy to clusters on a laptop.
 
 | File | What |
 |---|---|
 | `root.yaml` | The one Application applied by hand ("app of apps"): it deploys everything in `apps/` |
 | `apps/devops-ai.yaml` | The step 12 chart from `main`, with `values-kind.yaml` and `values-argocd.yaml`, auto-sync, prune and self-heal |
 | `apps/prometheus.yaml` | Prometheus in the cluster (community chart, small): scrapes the app pods through their `prometheus.io/scrape` annotation |
-| `values-argocd.yaml` | The GHCR image and its tag (CI rewrites the tag), and the OpenRouter key from a Secret you create |
+| `apps/devops-ai-floci.yaml` | The same chart on Floci's EKS (cluster `floci-eks`, registered by `12-Helm/floci`), with `values-floci.yaml`, `values-argocd.yaml` and `values-argocd-floci.yaml` |
+| `values-argocd.yaml` | The GHCR image and its tag (CI rewrites the tag), and the OpenRouter key from a Secret. Shared by both apps, so one tag commit updates both clusters |
+| `values-argocd-floci.yaml` | Floci only: the RDS URL from the Secret Terraform creates |
 
 Once (the kind cluster from step 10):
 

@@ -1,0 +1,35 @@
+# The chatbot on Floci's EKS (step 11), deployed by the same ArgoCD that runs in kind.
+# floci-eks is registered by 12-Helm/floci (Terraform), which also creates the app's Secrets there.
+# It reads the same values-argocd.yaml as the kind app, so one tag commit from CI updates both.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: devops-ai-floci
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/NVB20/devops-ai.git
+    targetRevision: main
+    path: 12-Helm/devops-ai
+    helm:
+      releaseName: devops-ai
+      valueFiles:  # relative to the chart; the later file wins
+        - ../values-floci.yaml
+        - ../../13-ArgoCD/values-argocd.yaml
+        - ../../13-ArgoCD/values-argocd-floci.yaml
+  destination:
+    name: floci-eks
+    namespace: devops-ai
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
