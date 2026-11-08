@@ -72,7 +72,7 @@ flowchart LR
 | 07 | [07-n8n-Ollama](./07-n8n-Ollama) | Local LLM (Ollama) as an alternative to OpenRouter, n8n chat workflow | ✅ |
 | 08 | [08-CICD](./08-CICD) | GitHub Actions: tests on real pgvector, config checks, image to GHCR | ✅ |
 | 09 | [09-Monitoring](./09-Monitoring) | `/metrics`, Prometheus alert rules, Grafana dashboard | ✅ |
-| 10 | [10-Kubernetes](./10-Kubernetes) | Postgres, ingest Job and chatbot on a local kind cluster | 🚧 |
+| 10 | [10-Kubernetes](./10-Kubernetes) | Postgres, ingest Job and chatbot on a local kind cluster (now deployed by the step 12 chart) | ✅ |
 | 11 | [11-Terraform-Floci](./11-Terraform-Floci) | Terraform builds VPC, S3, ECR, RDS (pgvector) and EKS on Floci (local AWS) | ✅ |
 | 12 | [12-Helm](./12-Helm) | One Helm chart with values for kind and Floci's EKS | ✅ |
 | 13 | [13-ArgoCD](./13-ArgoCD) | GitOps: ArgoCD deploys from `main`, CI commits each image tag | ✅ |
@@ -363,6 +363,8 @@ Tests: `test_metrics.py` checks what an answered, off-topic, clarifying, unanswe
 
 <details>
 <summary><b>☸️ Step 10: Kubernetes on kind</b></summary>
+
+> **Superseded by step 12.** These hand-written manifests became the Helm chart, which ArgoCD (step 13) now deploys on this same kind cluster: Postgres, the ingest Job and the chatbot run there, from the chart. The manifests are kept to show the starting point; CI still checks them against the Kubernetes schema.
 
 The step 09 image on a local [kind](https://kind.sigs.k8s.io) cluster: Postgres as a StatefulSet with its own volume, the ingest as a Job, the chatbot as a Deployment. From the repo root:
 
