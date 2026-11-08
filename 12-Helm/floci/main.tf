@@ -48,7 +48,7 @@ resource "kubernetes_secret_v1" "openrouter" {
   data = { OPENROUTER_API_KEY = var.openrouter_api_key }
 }
 
-# ArgoCD's login, as `argocd cluster add` would make it. A ServiceAccount token doesn't expire,
+# ArgoCD's login, as `argocd cluster add` would make it: a ServiceAccount with a long token,
 # unlike the 15-minute EKS tokens.
 resource "kubernetes_service_account_v1" "argocd" {
   metadata {
@@ -73,14 +73,16 @@ resource "kubernetes_cluster_role_binding_v1" "argocd" {
   }
 }
 
-resource "kubernetes_secret_v1" "argocd_token" {
+# Requested from the TokenRequest API (like `kubectl create token`): Floci's k3s never fills the
+# older service-account-token Secrets. Valid one year; `terraform apply -replace` this to renew.
+resource "kubernetes_token_request_v1" "argocd" {
   metadata {
-    name        = "argocd-manager-token"
-    namespace   = "kube-system"
-    annotations = { "kubernetes.io/service-account.name" = kubernetes_service_account_v1.argocd.metadata[0].name }
+    name      = kubernetes_service_account_v1.argocd.metadata[0].name
+    namespace = "kube-system"
   }
-  type                           = "kubernetes.io/service-account-token"
-  wait_for_service_account_token = true
+  spec {
+    expiration_seconds = 31536000
+  }
 }
 
 # --- On kind: register Floci's EKS in ArgoCD ---
@@ -97,7 +99,7 @@ resource "kubernetes_secret_v1" "argocd_cluster" {
     name   = "floci-eks" # the destination name in 13-ArgoCD/apps/devops-ai-floci.yaml
     server = var.floci_eks_api
     config = jsonencode({
-      bearerToken = kubernetes_secret_v1.argocd_token.data["token"]
+      bearerToken = kubernetes_token_request_v1.argocd.token
       tlsClientConfig = {
         caData = data.aws_eks_cluster.main.certificate_authority[0].data # base64, as ArgoCD wants it
       }
