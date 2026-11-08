@@ -4,6 +4,8 @@ image:
   repository: localhost:4566/000000000000/us-east-1/devops-ai-app  # Floci's ECR, path-style
   pullPolicy: IfNotPresent
 
+runtimeLabel: floci-eks
+
 postgres:
   enabled: false  # the database is RDS: database.url comes from Terraform
 

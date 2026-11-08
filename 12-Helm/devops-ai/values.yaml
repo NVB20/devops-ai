@@ -10,6 +10,9 @@ imagePullSecrets: []
 
 replicaCount: 1
 
+# Shown in the UI's runtime badge (APP_RUNTIME). Empty: "kubernetes"
+runtimeLabel: ""
+
 llm:
   provider: openrouter  # openrouter or ollama
   openrouterModel: openrouter/free

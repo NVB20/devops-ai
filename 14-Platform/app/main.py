@@ -1,5 +1,6 @@
 import json
 import os
+import platform
 import re
 import sysconfig
 import time
@@ -49,6 +50,25 @@ PROVIDERS = {
 if PROVIDER not in PROVIDERS:
     raise RuntimeError(f"LLM_PROVIDER must be one of {', '.join(PROVIDERS)}, not {PROVIDER!r}")
 MODEL = PROVIDERS[PROVIDER]["model"]
+
+
+def detect_runtime() -> dict:
+    """Where the app runs, shown in the UI. APP_RUNTIME wins (the chart sets kind / floci-eks, which detection can't tell);
+    else Kubernetes sets KUBERNETES_SERVICE_HOST in every pod, Docker creates /.dockerenv, and anything else is local."""
+    if os.getenv("KUBERNETES_SERVICE_HOST"):
+        kind = "kubernetes"
+    elif os.path.exists("/.dockerenv"):
+        kind = "docker"
+    else:
+        kind = "local"
+    info = {"kind": kind, "label": os.getenv("APP_RUNTIME") or kind, "host": platform.node(), "os": platform.system()}
+    # Set by the chart through the Downward API
+    if os.getenv("POD_NAMESPACE"):
+        info["pod"] = f"{os.getenv('POD_NAMESPACE')}/{os.getenv('POD_NAME', '')}"
+    return info
+
+
+RUNTIME = detect_runtime()
 TOP_K = 5  # how many runbook chunks to give the LLM
 MIN_SIMILARITY = 0.3  # below this, a chunk is not about the question
 
@@ -170,6 +190,9 @@ REVIEWS = Counter("devops_ai_reviews_total", "Answer reviews by result (passed, 
 SEARCH_TOP_SIMILARITY = Histogram("devops_ai_search_top_similarity", "Similarity of the best chunk a search found (0 when none)",
                                   buckets=(0, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1))
 KB_CHUNKS = Gauge("devops_ai_kb_chunks", "Runbook chunks in the knowledge base, as /health last saw it (-1: database down)")
+# Always 1; the labels say where the app runs. kind is one of kubernetes/docker/local, label is APP_RUNTIME or kind.
+RUNTIME_INFO = Gauge("devops_ai_runtime_info", "Where the app runs", ["kind", "label"])
+RUNTIME_INFO.labels(RUNTIME["kind"], RUNTIME["label"]).set(1)
 
 
 def outcome(result: dict) -> str:
@@ -181,10 +204,37 @@ def outcome(result: dict) -> str:
     return "answered" if result.get("sources") else "no_answer"
 
 
-def record_question(endpoint: str, result: dict, started: float, failed: bool = False):
+def record_question(endpoint: str, result: dict, started: float, failed: bool = False, question: str = ""):
     route = result.get("route") or "unknown"
-    QUESTIONS.labels(endpoint, route, "error" if failed else outcome(result)).inc()
+    what = "error" if failed else outcome(result)
+    QUESTIONS.labels(endpoint, route, what).inc()
     QUESTION_SECONDS.labels(endpoint, route).observe(time.perf_counter() - started)
+    # Metrics only count gaps; the text goes to Postgres so /gaps can say which runbooks to write
+    if what == "no_answer" and question.strip():
+        try:
+            save_unanswered(question, route)
+        except psycopg.Error as e:
+            print(f"Could not save the unanswered question: {e}", flush=True)  # never fail the answer for it
+
+
+def save_unanswered(question: str, route: str):
+    with psycopg.connect(DATABASE_URL, connect_timeout=3) as conn:
+        conn.execute("INSERT INTO unanswered_questions (question, route) VALUES (%s, %s)",
+                     (question.strip()[:2000], route))
+
+
+def unanswered_gaps(limit: int) -> list[dict]:
+    """The same question asked again counts once more, not as a new line (case and spaces ignored)."""
+    with psycopg.connect(DATABASE_URL, connect_timeout=3, options="-c statement_timeout=5000") as conn:
+        rows = conn.execute(
+            """SELECT min(question), count(*), max(asked_at), min(route)
+               FROM unanswered_questions
+               GROUP BY lower(btrim(question))
+               ORDER BY count(*) DESC, max(asked_at) DESC
+               LIMIT %s""",
+            (limit,),
+        ).fetchall()
+    return [{"question": q, "times": n, "last_asked": last.isoformat(), "route": r} for q, n, last, r in rows]
 
 
 @app.middleware("http")
@@ -548,9 +598,10 @@ def health():
         chunks = chunk_count()
     except psycopg.Error as e:
         KB_CHUNKS.set(-1)
-        return JSONResponse(status_code=503, content={"status": "unhealthy", "database": "down", "detail": str(e), "llm": llm})
+        return JSONResponse(status_code=503, content={"status": "unhealthy", "database": "down", "detail": str(e),
+                                                      "llm": llm, "runtime": RUNTIME})
     KB_CHUNKS.set(chunks)
-    return {"status": "healthy", "database": "up", "chunks": chunks, "llm": llm}
+    return {"status": "healthy", "database": "up", "chunks": chunks, "llm": llm, "runtime": RUNTIME}
 
 
 @app.get("/metrics", include_in_schema=False)
@@ -563,6 +614,15 @@ def metrics():
 def search_endpoint(q: str):
     """See which chunks a question retrieves, without calling the LLM."""
     return search(q)
+
+
+@app.get("/gaps")
+def gaps(limit: int = 50):
+    """Questions no runbook answered, most asked first: the runbooks to write next."""
+    try:
+        return unanswered_gaps(max(1, min(limit, 500)))
+    except psycopg.Error as e:
+        raise HTTPException(status_code=503, detail=f"Knowledge base unavailable: {e}")
 
 
 @app.get("/graph", include_in_schema=False)
@@ -582,7 +642,7 @@ def chat(request: ChatRequest):
     except Exception as e:
         record_question("chat", {}, started, failed=True)
         raise HTTPException(status_code=502, detail=str(e))
-    record_question("chat", result, started)
+    record_question("chat", result, started, question=request.message)
 
     return {
         "user": request.message,
@@ -651,7 +711,7 @@ def chat_stream(request: ChatRequest):
             yield sse({"type": "error", "node": node, "detail": str(e)})
             return
 
-        record_question("stream", state, started)
+        record_question("stream", state, started, question=request.message)
 
         yield sse({
             "type": "done",

@@ -71,11 +71,11 @@ flowchart LR
 | 06 | [06-Deploy](./06-Deploy) | Retrieval tests, DB-aware `/health`, fully containerized | ✅ |
 | 07 | [07-n8n-Ollama](./07-n8n-Ollama) | Local LLM (Ollama) as an alternative to OpenRouter, n8n chat workflow | ✅ |
 | 08 | [08-CICD](./08-CICD) | GitHub Actions: tests on real pgvector, config checks, image to GHCR | 🚧 |
-| 09 | [09-Monitoring](./09-Monitoring) | `/metrics`, Prometheus alert rules, Grafana dashboard | 🚧 |
+| 09 | [09-Monitoring](./09-Monitoring) | `/metrics`, Prometheus alert rules, Grafana dashboard | ✅ |
 | 10 | [10-Kubernetes](./10-Kubernetes) | Postgres, ingest Job and chatbot on a local kind cluster | 🚧 |
-| 11 | [11-Terraform-Floci](./11-Terraform-Floci) | Terraform builds VPC, S3, ECR, RDS (pgvector) and EKS on Floci (local AWS) | 🚧 |
-| 12 | [12-Helm](./12-Helm) | One Helm chart with values for kind and Floci's EKS | 🚧 |
-| 13 | [13-ArgoCD](./13-ArgoCD) | GitOps: ArgoCD deploys from `main`, CI commits each image tag | 🚧 |
+| 11 | [11-Terraform-Floci](./11-Terraform-Floci) | Terraform builds VPC, S3, ECR, RDS (pgvector) and EKS on Floci (local AWS) | ✅ |
+| 12 | [12-Helm](./12-Helm) | One Helm chart with values for kind and Floci's EKS | ✅ |
+| 13 | [13-ArgoCD](./13-ArgoCD) | GitOps: ArgoCD deploys from `main`, CI commits each image tag | ✅ |
 | 14 | [14-Platform](./14-Platform) | Answer review against runbooks, alerts → n8n → chatbot → Discord, Postgres + n8n metrics | ✅ |
 
 ---
@@ -444,7 +444,7 @@ The chat is at http://127.0.0.1:8083/ui. `terraform output` in each stage shows 
 How the Floci parts fit together (all set in `11-Terraform-Floci/compose.yml`):
 
 - **pgvector on RDS.** Floci's RDS runs `postgres:16-alpine` by default, which has no pgvector. `FLOCI_SERVICES_RDS_DEFAULT_POSTGRES_IMAGE=pgvector/pgvector:pg17` swaps the image. The RDS master user is a superuser there, so the ingest's `CREATE EXTENSION vector` works, as on real RDS.
-- **Pods reach RDS** at `localhost.floci.io:<port>`. Floci proxies each database on a port of 7001-7099 inside its own container, and Floci's DNS answers that name with its container's address inside the cluster. On real AWS, set `db_host_in_cluster = ""` to use the RDS address.
+- **Pods reach RDS** at the RDS endpoint address, as on real AWS. On Floci that's the Floci container's address on the `floci` network (e.g. `172.29.0.2:7001`), where it proxies each database on a port of 7001-7099; the EKS node is on that network too. `localhost.floci.io` doesn't work: pods resolve it to `127.0.0.1`, themselves. If Floci restarts with a new address, `terraform apply` in `infra/` updates the secret.
 - **ECR URLs** use the path style (`localhost:4566/<account>/<region>/<repo>`), because Docker Desktop's containerd image store pushes over plain HTTP only to `localhost`. Floci points the cluster's containerd at the same registry, so pods pull the same URL.
 - **EKS logins** need a real IAM key: Floci refuses its public `test/test` key for them (it would grant cluster-admin). The infra stage creates a `devops-ai-deployer` user with an access entry; the kubeconfig and the app stage sign in as it. The kubeconfig and the state files hold that key and the database password, so they're git-ignored.
 - **No AWS CLI?** Use k3s's own admin kubeconfig instead: `docker cp floci-aws-eks-devops-ai:/etc/rancher/k3s/k3s.yaml k3s.yaml`, then replace `https://127.0.0.1:6443` in it with the `cluster_endpoint` output.
@@ -607,6 +607,8 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:9093/api/v2/alerts -Content
 
 About 10 seconds later (Alertmanager's `group_wait`) the chatbot's answer from `kubernetes-crashloopbackoff.md` is in Discord, and the run is in n8n under Executions. Without `DISCORD_WEBHOOK_URL`, the run stops at "Discord configured?".
 
+**Runbook gaps.** Each question no runbook answers is saved in Postgres (`unanswered_questions`, created by ingest and never emptied). `GET /gaps` lists them, most asked first: those are the runbooks to write next. Grafana's "Runbook coverage" row shows the % unanswered over time (24h and 7 days), so you see it drop as runbooks are added. "Clarify" and off-topic questions don't count. Saving never blocks an answer: if Postgres refuses, it's only logged.
+
 **Fallback channel.** Alertmanager also posts every alert straight to a second Discord channel (raw alert, no AI, and "resolved" when it's fixed), so alerts still arrive when n8n is down. Add `DISCORD_FALLBACK_WEBHOOK_URL` to `.env`. Alertmanager can't read env vars in its config, so its entrypoint writes the URL to a file the config reads (`webhook_url_file`).
 
 **Daily health report.** `14-Platform/n8n/devops-ai-daily-report.json` runs every day at 09:00 (Asia/Jerusalem). It reads the app's `/health` and Prometheus' firing alerts and posts ✅ "all systems OK" or ❌ with what's wrong to Discord. If the message doesn't come one morning, n8n itself is down. It's imported and published on n8n start; "Run now" in the editor runs it at once.
@@ -617,9 +619,11 @@ About 10 seconds later (Alertmanager's `group_wait`) the chatbot's answer from `
 - Add these random values to `.env` first: `SANDBOX_API_KEYS`, `SANDBOX_RUNNER_REGISTRATION_TOKEN`, `SANDBOX_RUNNER_API_KEYS`. The runner is privileged (Docker-in-Docker); no sandbox port is published.
 - Watch out for the browser filling your n8n login into these forms.
 
+**Where it runs.** A badge in the chat header shows where the app runs: 🐳 docker, ☸ kubernetes or 💻 local. Hover it for the host, the OS and, on Kubernetes, the pod. The app finds out by itself. Kubernetes sets `KUBERNETES_SERVICE_HOST` in every pod, and Docker creates `/.dockerenv`. Anything else counts as local, which includes uvicorn in a terminal. `APP_RUNTIME` changes the label, and the chart sets it from `runtimeLabel` (`kind` or `floci-eks`). The chart also passes the pod name through the Downward API. `/health` returns it as `runtime`, and `/metrics` has `devops_ai_runtime_info{kind,label}`.
+
 The step 14 image is also what CI publishes and ArgoCD deploys (the chart's `appVersion` is 14).
 
-Tests: `test_review.py` (passes, one rewrite, flagged after the rewrite, nothing to review, an unreadable verdict, the stream events), and the step 09 tests updated for the review step.
+Tests: `test_health.py` (runtime detection), `test_review.py` (passes, one rewrite, flagged after the rewrite, nothing to review, an unreadable verdict, the stream events), and the step 09 tests updated for the review step.
 
 </details>
 

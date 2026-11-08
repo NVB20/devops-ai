@@ -5,6 +5,8 @@ image:
   repository: devops-ai-app  # loaded with: kind load docker-image devops-ai-app:14 --name devops-ai
   pullPolicy: IfNotPresent
 
+runtimeLabel: kind
+
 postgres:
   enabled: true  # no managed database on kind: a pgvector Postgres in the cluster
 

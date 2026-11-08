@@ -17,3 +17,6 @@ Project AI - Knowledge Base.pdf
 
 # Local services and credentials list (real secrets)
 SERVICES.md
+# Saved Terraform plans hold the variables, secrets included
+tfplan
+*.tfplan

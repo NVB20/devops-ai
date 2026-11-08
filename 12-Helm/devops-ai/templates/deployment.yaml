@@ -50,6 +50,15 @@ spec:
                 optional: true  # not needed with llm.provider: ollama
           env:
             {{- include "devops-ai.databaseEnv" . | nindent 12 }}
+            # For the UI's runtime badge: which pod answered (Downward API)
+            - name: POD_NAME
+              valueFrom: {fieldRef: {fieldPath: metadata.name}}
+            - name: POD_NAMESPACE
+              valueFrom: {fieldRef: {fieldPath: metadata.namespace}}
+            {{- with .Values.runtimeLabel }}
+            - name: APP_RUNTIME
+              value: {{ . | quote }}
+            {{- end }}
           # Loading the embedding model takes a few seconds: up to 2 minutes before liveness starts
           startupProbe:
             tcpSocket:
