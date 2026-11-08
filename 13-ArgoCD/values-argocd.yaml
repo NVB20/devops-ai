@@ -2,7 +2,7 @@
 # CI rewrites the tag below on every push to main (job "gitops" in .github/workflows/ci.yml).
 image:
   repository: ghcr.io/nvb20/devops-ai-app
-  tag: "sha-2d2c8a3"
+  tag: "sha-e5ce5da"
   pullPolicy: IfNotPresent
 
 # The OpenRouter key never goes through Git: create this Secret by hand (see the README, step 13)
