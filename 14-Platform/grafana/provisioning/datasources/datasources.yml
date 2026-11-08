@@ -1,0 +1,18 @@
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+  # Shows Alertmanager's alerts, silences and routes in Grafana's Alerting pages
+  - name: Alertmanager
+    uid: alertmanager
+    type: alertmanager
+    access: proxy
+    url: http://alertmanager:9093
+    jsonData:
+      implementation: prometheus
+      # Grafana has no alert rules of its own; Prometheus sends them all to Alertmanager
+      handleGrafanaManagedAlerts: false

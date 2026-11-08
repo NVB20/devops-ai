@@ -1,0 +1,8 @@
+{
+  // Helm templates are Go templates, not plain YAML: don't let the YAML extension flag {{ ... }}
+  "files.associations": {
+    "**/templates/*.yaml": "helm",
+    "**/templates/*.tpl": "helm",
+    "**/templates/NOTES.txt": "helm"
+  }
+}

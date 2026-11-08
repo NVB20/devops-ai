@@ -158,6 +158,8 @@ services:
     environment:
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/devops-ai.json
     volumes:
+      # Same container path as step 09's mount, so this replaces it (adds the Alertmanager datasource)
+      - ./14-Platform/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./14-Platform/grafana/dashboards:/var/lib/grafana/dashboards:ro
 
 volumes:

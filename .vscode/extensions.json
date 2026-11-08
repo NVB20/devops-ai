@@ -1,0 +1,4 @@
+{
+  // Gives the "helm" language used in settings.json (highlighting, helm lint)
+  "recommendations": ["ms-kubernetes-tools.vscode-kubernetes-tools"]
+}
