@@ -1,6 +1,6 @@
-output "release" {
-  description = "See it with: helm --kubeconfig <kubeconfig_path of step 11> -n devops-ai history devops-ai"
-  value       = "${helm_release.devops_ai.name} in namespace ${helm_release.devops_ai.namespace}"
+output "argocd_cluster" {
+  description = "How ArgoCD knows Floci's EKS (the destination of 13-ArgoCD/apps/devops-ai-floci.yaml)"
+  value       = "floci-eks at ${var.floci_eks_api}"
 }
 
 output "open_the_chat" {

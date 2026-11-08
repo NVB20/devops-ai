@@ -1,13 +1,14 @@
-# The chart on Floci's EKS (step 11). 12-Helm/floci (Terraform) installs it with these values plus
-# what only Terraform knows: the ECR repository, the RDS URL from Secrets Manager, the OpenRouter key.
+# The chart on Floci's EKS (step 11). ArgoCD deploys it (13-ArgoCD/apps/devops-ai-floci.yaml) with
+# these values, then 13-ArgoCD/values-argocd.yaml (the GHCR image CI built) and values-argocd-floci.yaml
+# (the Secrets 12-Helm/floci made: the RDS URL and the OpenRouter key).
 image:
-  repository: localhost:4566/000000000000/us-east-1/devops-ai-app  # Floci's ECR, path-style
+  repository: localhost:4566/000000000000/us-east-1/devops-ai-app  # Floci's ECR, if you install by hand
   pullPolicy: IfNotPresent
 
 runtimeLabel: floci-eks
 
 postgres:
-  enabled: false  # the database is RDS: database.url comes from Terraform
+  enabled: false  # the database is RDS
 
 service:
   type: ClusterIP  # the cluster's ports aren't published; reach it with kubectl port-forward

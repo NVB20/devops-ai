@@ -1,0 +1,5 @@
+# What ArgoCD adds for Floci's EKS on top of values-floci.yaml and values-argocd.yaml (the image and tag,
+# shared with kind, so CI's one tag commit updates both clusters). 12-Helm/floci (Terraform) creates
+# both Secrets on Floci: the RDS URL comes from Secrets Manager and never goes through Git.
+database:
+  existingSecret: devops-ai-db-url

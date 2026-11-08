@@ -1,5 +1,5 @@
-# Step 11's app stage, the Helm way: instead of ~200 lines of Kubernetes resources it installs the
-# chart in ../devops-ai. It reads the outputs of step 11's infra stage, which must be applied first.
+# Prepares Floci's EKS for ArgoCD and registers it there (see main.tf). It reads the outputs of
+# step 11's infra stage, which must be applied first.
 
 data "terraform_remote_state" "infra" {
   backend = "local"
@@ -37,10 +37,16 @@ data "aws_eks_cluster_auth" "main" {
   name = local.infra.cluster_name
 }
 
-provider "helm" {
-  kubernetes = {
-    host                   = data.aws_eks_cluster.main.endpoint
-    cluster_ca_certificate = base64decode(data.aws_eks_cluster.main.certificate_authority[0].data)
-    token                  = data.aws_eks_cluster_auth.main.token
-  }
+# Floci's EKS, from this machine
+provider "kubernetes" {
+  host                   = data.aws_eks_cluster.main.endpoint
+  cluster_ca_certificate = base64decode(data.aws_eks_cluster.main.certificate_authority[0].data)
+  token                  = data.aws_eks_cluster_auth.main.token
+}
+
+# kind, where ArgoCD runs
+provider "kubernetes" {
+  alias          = "kind"
+  config_path    = pathexpand(var.kind_kubeconfig)
+  config_context = var.kind_context
 }

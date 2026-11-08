@@ -131,7 +131,12 @@ jobs:
           grep -q "image: \"ghcr.io/nvb20/devops-ai-app:sha-" argocd.yaml
           helm template devops-ai $chart -n devops-ai -f 12-Helm/values-floci.yaml \
             --set database.url=postgresql://u:p@db:5432/knowledge --set-string llm.openrouterApiKey=x > floci.yaml
-          for f in kind.yaml floci.yaml argocd.yaml; do
+          # What ArgoCD renders for Floci's EKS: GHCR image, Secrets made by Terraform, none from the chart
+          helm template devops-ai $chart -n devops-ai -f 12-Helm/values-floci.yaml -f 13-ArgoCD/values-argocd.yaml \
+            -f 13-ArgoCD/values-argocd-floci.yaml > argocd-floci.yaml
+          grep -q "image: \"ghcr.io/nvb20/devops-ai-app:sha-" argocd-floci.yaml
+          if grep -q "^kind: Secret" argocd-floci.yaml; then echo "argocd-floci renders a Secret"; exit 1; fi
+          for f in kind.yaml floci.yaml argocd.yaml argocd-floci.yaml; do
             docker run --rm -i ghcr.io/yannh/kubeconform:latest -strict -summary - < $f
           done
           # kind runs Postgres in the cluster, Floci uses RDS
